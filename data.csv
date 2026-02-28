@@ -1,5 +1,0 @@
-# template - real data should not be committed
-# columns: name,email,totalQuizzes,averageScore,bestScore
-name,email,totalQuizzes,averageScore,bestScore
-Example User,example@example.com,5,80,10
-    
