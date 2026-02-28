@@ -100,9 +100,15 @@ function showContact() {
     showPage('contactPage');
 }
 
+// configuration for GitHub-hosted CSV
+const GITHUB_RAW_URL = "https://raw.githubusercontent.com/mrDevStudent/QuizPrototype2.0/refs/heads/main/data.csv";
+const GITHUB_API_URL = "https://api.github.com/repos/YOUR_USER/YOUR_REPO/contents/data.csv";
+
 // new data visualization page
 function showDataPage() {
     loadDataVisualization();
+    // also fetch table from remote repo, if available
+    loadTable().catch(err => console.warn('loadTable failed', err));
     showPage('dataPage');
 }
 
@@ -1131,32 +1137,53 @@ function loadDataVisualization() {
     });
 }
 
-function exportDataCSV() {
-    // only export current user's record to avoid exposing everyone else's data
-    const current = JSON.parse(localStorage.getItem('currentUser')) || null;
-    if (!current) {
-        alert('No user logged in.');
+// exportDataCSV removed per user request; download functionality disabled
+
+
+// simple CSV loader using PapaParse
+async function loadTable() {
+    try {
+        const response = await fetch(GITHUB_RAW_URL);
+        const csvText = await response.text();
+        const results = Papa.parse(csvText, { header: true });
+        const data = results.data;
+        const tableBody = document.getElementById('myTableBody');
+        if (tableBody) {
+            tableBody.innerHTML = '';
+            data.forEach(row => {
+                tableBody.innerHTML += `<tr><td>${row.name}</td><td>${row.averageScore}</td></tr>`;
+            });
+        }
+    } catch (e) {
+        console.warn('Could not load remote CSV', e);
+    }
+}
+
+// saving back to GitHub via API (requires personal token from user input)
+async function saveData(newName, newScore) {
+    const token = document.getElementById('adminKey')?.value;
+    if (!token) {
+        alert('Please enter token first');
         return;
     }
-    const name = current.name || '';
-    const email = current.email || '';
-    const total = current.quizzes ? current.quizzes.length : 0;
-    const avg = total > 0 ? Math.round(current.quizzes.reduce((s,q) => s + q.percentage, 0) / total) : 0;
-    const best = current.quizzes && current.quizzes.length ? Math.max(...current.quizzes.map(q => q.score)) : 0;
-
-    let csv = 'name,email,totalQuizzes,averageScore,bestScore\n';
-    csv += `${name},${email},${total},${avg},${best}\n`;
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'data.csv';
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const url = GITHUB_API_URL;
+    const fileData = await fetch(url).then(res => res.json());
+    const sha = fileData.sha;
+    const oldCsv = atob(fileData.content);
+    const newCsv = oldCsv + `\n${newName},email@test.com,1,${newScore},${newScore}`;
+    await fetch(url, {
+        method: "PUT",
+        headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            message: "Updating scores",
+            content: btoa(newCsv),
+            sha: sha
+        })
+    });
+    alert("Database Updated!");
 }
 
 // Load Profile
