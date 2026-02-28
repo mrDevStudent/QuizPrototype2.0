@@ -42,10 +42,6 @@
                 <span class="nav-icon nav-contact">✉️</span>
                 <span class="nav-label">Contact</span>
             </button>
-            <button class="nav-item" onclick="showDataPage()">
-                <span class="nav-icon nav-data">📁</span>
-                <span class="nav-label">Data</span>
-            </button>
         </nav>
 
         <div class="sidebar-footer">
@@ -409,8 +405,20 @@
             <div class="profile-container">
                 <div class="profile-card">
                     <canvas id="dataChart" width="400" height="200"></canvas>
-                    <button class="btn btn-secondary" style="margin-top:20px;" onclick="exportDataCSV()">Download CSV</button>
-                    <p style="margin-top:10px; font-size:0.9em; color:#666;">This download returns only the currently logged‑in user's record. The repository file is just a template/example.</p>
+                    <!-- table showing remote CSV results -->
+                    <div style="margin-top:20px;">
+                        <h3>Raw CSV from repo</h3>
+                        <table style="width:100%; border-collapse: collapse;">
+                            <thead><tr><th style="border:1px solid #ccc; padding:8px;">Name</th><th style="border:1px solid #ccc; padding:8px;">Avg Score</th></tr></thead>
+                            <tbody id="myTableBody"></tbody>
+                        </table>
+                    </div>
+                    <!-- token input and save control -->
+                    <div style="margin-top:20px;">
+                        <input type="password" id="adminKey" placeholder="Enter Token to Save" style="padding:8px; width:100%; max-width:300px;" />
+                        <button class="btn btn-primary" style="margin-top:10px;" onclick="saveData(prompt('Name?'), prompt('Score?'))">Add Entry</button>
+                        <p style="font-size:0.9em;color:#666;">During demo, paste your Personal Access Token here before clicking the button.</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -445,6 +453,8 @@
     </div>
     <!-- Chart.js for simple data visualization -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- PapaParse for CSV parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
     <script src="style.js"></script>
     <script src="script.js"></script>
 </body>
