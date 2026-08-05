@@ -1,0 +1,3415 @@
+<!DOCTYPE html> 
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Math Quiz Master — practice arithmetic with multiple choice, true/false and matching quizzes.">
+    <link rel="icon" href="favicon.ico">
+    <title>Math Quiz Game</title>
+    <style>
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    overflow-x: hidden;
+    width: 100%;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f5f7fa;
+    display: flex;
+    min-height: 100vh;
+    max-width: 100vw;
+    overflow-x: hidden;
+    background-size: cover;
+    background-position: center;
+}
+
+/* provide a safe background color when images fail */
+body { background-color: #f5f7fa; }
+
+/* CSS variable hooks for uploaded assets */
+:root {
+    --app-texture: none;
+    --color-primary: #667eea;
+    --color-accent: #4ecdc4;
+    --color-danger: #ff6b6b;
+    --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* Small icon area inside quick buttons */
+.quick-btn .btn-icon {
+    width: 28px;
+    height: 28px;
+    display: inline-block;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    border-radius: 6px;
+}
+
+/* Help ensure icons don't overlay text awkwardly */
+.quick-btn span:not(.btn-icon) { margin-left: 8px; }
+
+/* Sidebar */
+.sidebar {
+    width: 280px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    transition: transform 0.3s ease;
+}
+
+.sidebar-header {
+    padding: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.toggle-sidebar {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 1.5em;
+    cursor: pointer;
+    display: none;
+}
+
+.sidebar-nav {
+    flex: 1;
+    padding: 20px 0;
+    overflow-y: auto;
+}
+
+.nav-item {
+    width: 100%;
+    padding: 15px 20px;
+    background: transparent;
+    border: none;
+    color: white;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-size: 1em;
+    transition: all 0.3s ease;
+}
+
+.nav-item:focus,
+.btn:focus,
+.answer-btn:focus {
+    outline: 3px solid rgba(102,126,234,0.25);
+    outline-offset: 2px;
+}
+
+.nav-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    padding-left: 25px;
+}
+
+.nav-item.active {
+    background: rgba(255, 255, 255, 0.2);
+    border-left: 4px solid white;
+    padding-left: 16px;
+}
+
+.nav-icon {
+    font-size: 1.3em;
+    min-width: 30px;
+    width: 30px;
+    height: 30px;
+    display: inline-block;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.nav-item.logout-btn .nav-icon { background-size: 22px 22px; }
+.nav-label {
+    white-space: nowrap;
+}
+/* data page icon rule (uses emoji text so no image needed) */
+.nav-icon.nav-data { font-size: 1.3em; }
+
+.sidebar-footer {
+    padding: 20px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.logout-btn {
+    color: #ff6b6b;
+}
+
+.logout-btn:hover {
+    background: rgba(255, 107, 107, 0.1);
+}
+
+/* Mobile menu button + backdrop for the off-canvas sidebar drawer (shown only on small screens, only when logged in) */
+.mobile-menu-btn {
+    display: none;
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 1100;
+    width: 44px;
+    height: 44px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1.3em;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+    cursor: pointer;
+}
+
+.sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 999;
+}
+
+.sidebar-backdrop.visible {
+    display: block;
+}
+
+/* Main Content */
+.main-content {
+    margin-left: 0; /* default when sidebar hidden */
+    transition: margin-left 240ms ease;
+    flex: 1;
+    min-width: 0; /* allow the flex item to shrink properly instead of overflowing */
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Sidebar is only ever pushed into the layout when logged in (body.has-sidebar). Widths match
+   the sidebar's own responsive widths defined below, so content and sidebar never overlap or gap. */
+body.has-sidebar .main-content {
+    margin-left: 280px;
+}
+
+.page {
+    display: none;
+    width: 100%;
+    min-height: 100vh;
+    animation: fadeIn 0.3s ease-in;
+    padding: 40px 20px;
+}
+
+.page.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Front Page */
+#frontPage {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: none !important;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0 !important;
+    min-height: 100vh;
+}
+
+#frontPage.active {
+    display: flex !important;
+}
+
+.auth-container {
+    text-align: center;
+    color: white;
+    max-width: 500px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#loginPage,
+#registerPage {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: none !important;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0 !important;
+    min-height: 100vh;
+    padding: 0 !important;
+}
+
+#loginPage.active,
+#registerPage.active {
+    display: flex !important;
+}
+
+.title {
+    font-size: 3em;
+    margin-bottom: 10px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    white-space: normal; /* allow full title text */
+    overflow: visible;
+    text-overflow: unset;
+    max-width: 100%;
+}
+
+/* Reduce font-size on small screens so it fits on one line if possible */
+@media (max-width: 480px) {
+    .title { font-size: 1.6em; }
+}
+
+.subtitle {
+    font-size: 1.2em;
+    margin-bottom: 40px;
+    opacity: 0.9;
+}
+
+.button-group {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 12px 30px;
+    border: none;
+    border-radius: 25px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 600;
+}
+
+.btn-primary {
+    background: #ff6b6b;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #ee5a6f;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+}
+
+.btn-secondary {
+    background: #4ecdc4;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #45b8b0;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(78, 205, 196, 0.4);
+}
+
+.btn-link {
+    background: rgba(255, 255, 255, 0.15);
+    color: rgb(145, 170, 238);
+    border: 2px solid white;
+    margin-top: 15px;
+}
+
+.btn-link:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: #fff;
+    text-decoration: underline;
+}
+
+/* Forms */
+.form-container {
+    background: white;
+    border-radius: 15px;
+    padding: 40px;
+    max-width: 400px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.form-container h2 {
+    color: #667eea;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #333;
+    font-weight: 600;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 1em;
+    transition: border-color 0.3s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+/* Password field wrapper and toggle */
+
+.password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+
+.password-wrapper input {
+    width: 100%;
+    padding-right: 56px; /* room for the eye icon */
+}
+
+.toggle-password {
+    position: absolute;
+    right: 8px;
+    top: 30%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    width: 36px;
+    height: 36px;
+    padding: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #666;
+    line-height: 0;
+    border-radius: 6px;
+}
+
+.toggle-password svg { display: block; }
+
+.toggle-password:hover { color: #667eea; }
+
+.char-counter {
+    margin-top: 6px;
+    color: #666;
+    font-size: 0.9em;
+}
+
+/* invalid state for password min length */
+.invalid {
+    border-color: #ff6b6b !important;
+}
+.char-counter.invalid {
+    color: #ff6b6b !important;
+}
+
+form button {
+    width: 100%;
+    margin-top: 10px;
+}
+
+/* Page Header */
+.page-header {
+    margin-bottom: 40px;
+}
+
+.page-header h1 {
+    color: #667eea;
+    font-size: 2.5em;
+    margin-bottom: 10px;
+    white-space: nowrap; /* keep header title one line */
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.header-subtitle {
+    color: #999;
+    font-size: 1.1em;
+}
+
+/* Home Page / Dashboard */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 280px 1fr 320px;
+    gap: 24px;
+    align-items: start;
+}
+
+.dashboard-card {
+    background: white;
+    border-radius: 15px;
+    padding: 22px;
+    box-shadow: 0 8px 30px rgba(34,41,76,0.06);
+}
+
+.profile-card-small {
+    text-align: center;
+}
+
+.profile-avatar-large {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2em;
+    font-weight: 700;
+    margin: 0 auto 12px;
+}
+
+.profile-stats-small {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.profile-stats-small .ps-item {
+    flex: 1;
+    background: #f5f7fa;
+    padding: 12px;
+    border-radius: 10px;
+}
+
+.main-card h2 {
+    color: #667eea;
+    margin-bottom: 12px;
+}
+
+.progress-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.progress-bar-bg {
+    background: #eef2ff;
+    border-radius: 12px;
+    height: 18px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg,#4ecdc4,#667eea);
+    width: 0%;
+    transition: width 600ms ease;
+}
+
+.progress-info {
+    font-weight: 600;
+    color: #333;
+}
+
+.recent-list {
+    margin-top: 8px;
+    display: grid;
+    gap: 10px;
+}
+
+.recent-item {
+    display: flex;
+    justify-content: space-between;
+    background: #fafbfd;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid #eef2ff;
+}
+
+.recent-item .meta {
+    font-size: 0.9em;
+    color: #666;
+}
+
+.actions-card h3 { color: #667eea; }
+
+.quick-actions { display:flex; flex-direction:column; gap:10px; }
+
+.leaderboard-list { margin-top: 8px; }
+
+.leader-item { display:flex; justify-content:space-between; padding:10px 8px; border-radius:8px; background:#f9fbff; border:1px solid #eef2ff; }
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .dashboard-grid { grid-template-columns: 240px 1fr; }
+    .actions-card { display:none; }
+}
+
+@media (max-width: 768px) {
+    .dashboard-grid { grid-template-columns: 1fr; }
+    .profile-card-small { order: -1; }
+}
+.stats-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 15px;
+    background: #f5f7fa;
+    border-radius: 10px;
+}
+
+.stat-value {
+    display: block;
+    font-size: 2em;
+    font-weight: bold;
+    color: #667eea;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.9em;
+    color: #999;
+}
+
+.quick-quiz-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.quick-btn {
+    padding: 20px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    color: white;
+}
+
+.quick-easy {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+}
+
+.quick-medium {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.quick-hard {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.quick-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.btn-icon {
+    font-size: 1.8em;
+}
+
+/* Data Visualization Page */
+#dataPage .profile-card {
+    max-width: 600px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+/* Quiz Selection Page */
+.quiz-selection-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 30px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.quiz-card {
+    background: white;
+    border-radius: 15px;
+    padding: 40px 25px;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+}
+
+.quiz-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+}
+
+.card-icon {
+    font-size: 4em;
+    margin-bottom: 15px;
+}
+
+.quiz-card h3 {
+    color: #667eea;
+    font-size: 1.8em;
+    margin-bottom: 10px;
+}
+
+.card-desc {
+    color: #666;
+    margin-bottom: 10px;
+    font-size: 0.95em;
+}
+
+.card-info {
+    color: #999;
+    font-size: 0.85em;
+    margin-bottom: 20px;
+}
+
+.quiz-card .btn {
+    width: 100%;
+}
+
+/* Game Type Selection Page */
+.game-type-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 30px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.game-type-card {
+    background: white;
+    border-radius: 15px;
+    padding: 40px 25px;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+}
+
+.game-type-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+}
+
+.type-icon {
+    font-size: 4em;
+    margin-bottom: 15px;
+}
+
+.game-type-card h3 {
+    color: #667eea;
+    font-size: 1.8em;
+    margin-bottom: 10px;
+}
+
+.type-desc {
+    color: #666;
+    margin-bottom: 20px;
+    font-size: 0.95em;
+}
+
+.game-type-card .btn {
+    width: 100%;
+}
+
+/* Statistics Page */
+.stats-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    max-width: 1200px;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.stat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    padding-bottom: 10px;
+}
+
+.stat-header h4 {
+    font-size: 1.1em;
+    margin: 0;
+}
+
+.stat-date {
+    font-size: 0.85em;
+    opacity: 0.8;
+}
+
+.stat-info p {
+    margin: 8px 0;
+    font-size: 0.95em;
+}
+
+.no-stats {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: #999;
+    padding: 40px 20px;
+    font-style: italic;
+}
+
+/* Profile Page */
+.profile-container {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.profile-card {
+    background: white;
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+}
+
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 30px;
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 20px;
+}
+
+.profile-avatar {
+    font-size: 3em;
+    min-width: 80px;
+    text-align: center;
+}
+
+.profile-info h2 {
+    color: #667eea;
+    margin-bottom: 5px;
+}
+
+.profile-info p {
+    color: #999;
+}
+
+.profile-stats {
+    margin: 30px 0;
+    display: grid;
+    gap: 15px;
+}
+
+.profile-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: #f5f7fa;
+    border-radius: 10px;
+}
+
+.profile-stat label {
+    font-weight: 600;
+    color: #333;
+}
+
+.profile-stat span {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #667eea;
+}
+
+/* Quiz Page */
+.quiz-header {
+    background: white;
+    padding: 20px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin: -40px -20px 30px -20px;
+    border-radius: 0 0 15px 15px;
+}
+
+.quiz-info {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.quiz-info h2 {
+    color: #667eea;
+    margin: 0;
+}
+
+.counter {
+    background: #4ecdc4;
+    color: white;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.9em;
+}
+
+.timer {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #667eea;
+}
+
+.timer #timeDisplay {
+    background: #fff3cd;
+    padding: 10px 20px;
+    border-radius: 8px;
+    display: inline-block;
+}
+
+.quiz-container {
+    max-width: 700px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 15px;
+    padding: 40px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+}
+
+.question-section {
+    margin-bottom: 30px;
+}
+
+#questionText {
+    color: #333;
+    margin-bottom: 25px;
+    font-size: 1.4em;
+    line-height: 1.6;
+}
+
+.answers-grid {
+    display: grid;
+    gap: 15px;
+}
+
+.answer-btn {
+    background: #f5f7fa;
+    border: 2px solid #e0e0e0;
+    padding: 18px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: all 0.3s ease;
+    text-align: left;
+    font-weight: 500;
+    color: #333;
+}
+
+.answer-btn:hover {
+    background: #e8ecf1;
+    border-color: #667eea;
+}
+
+.answer-btn.selected {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+/* True/False Quiz */
+.true-false-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.true-false-btn {
+    padding: 25px 20px !important;
+    font-size: 1.2em !important;
+    font-weight: 600 !important;
+    border-radius: 15px !important;
+}
+
+.true-false-btn:first-child {
+    background: #11998e !important;
+    color: white !important;
+    border-color: #11998e !important;
+}
+
+.true-false-btn:first-child:hover {
+    background: #0d7a6a !important;
+    border-color: #0d7a6a !important;
+}
+
+.true-false-btn:last-child {
+    background: #ff6b6b !important;
+    color: white !important;
+    border-color: #ff6b6b !important;
+}
+
+.true-false-btn:last-child:hover {
+    background: #ee5a6f !important;
+    border-color: #ee5a6f !important;
+}
+
+.true-false-btn.selected {
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Matching Quiz */
+.matching-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    align-items: start;
+    margin-bottom: 20px;
+}
+
+.matching-column {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.matching-item {
+    padding: 15px 20px;
+    border-radius: 10px;
+    border: 2px solid #e0e0e0;
+    background: #f5f7fa;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.left-item {
+    background: #f0f3ff;
+    border-color: #667eea;
+    color: #333;
+}
+
+.left-item.selected {
+    background: #eef3ff;
+    border-color: #667eea;
+    box-shadow: 0 5px 15px rgba(102,126,234,0.12);
+}
+
+.assigned-letter {
+    background: rgba(102,126,234,0.08);
+    padding: 2px 8px;
+    border-radius: 8px;
+    margin-left: 8px;
+    color: #333;
+    font-size: 0.95em;
+    vertical-align: middle;
+}
+.right-item {
+    background: #fff0f5;
+    border-color: #ff6b6b;
+    color: #333;
+}
+
+.right-item:hover {
+    background: #ffe0e6;
+    transform: translateX(-5px);
+}
+
+.right-item.matched {
+    background: #4ecdc4;
+    color: white;
+    border-color: #4ecdc4;
+    font-weight: 600;
+}
+
+.quiz-footer {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+    justify-content: center;
+}
+
+.quiz-footer button {
+    padding: 12px 40px;
+}
+
+/* Results Page */
+.results-container {
+    background: white;
+    border-radius: 15px;
+    padding: 40px;
+    max-width: 700px;
+    margin: 0 auto;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+}
+
+#resultTitle {
+    color: #667eea;
+    margin-bottom: 30px;
+    font-size: 2em;
+    text-align: center;
+}
+
+.results-box {
+    margin-bottom: 30px;
+}
+
+.score-display {
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.score-circle {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    color: white;
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+
+.score-circle span:first-child {
+    font-size: 3em;
+    font-weight: bold;
+}
+
+.score-label {
+    font-size: 0.9em;
+    opacity: 0.9;
+    margin-top: 5px;
+}
+
+.results-details {
+    background: #f5f7fa;
+    border-radius: 10px;
+    padding: 25px;
+    margin-bottom: 20px;
+}
+
+.results-details p {
+    margin: 12px 0;
+    color: #333;
+    font-size: 1em;
+}
+
+.results-details strong {
+    color: #667eea;
+}
+
+.results-review {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.result-item {
+    padding: 15px;
+    border-bottom: 1px solid #e0e0e0;
+    margin-bottom: 10px;
+}
+
+.result-item:last-child {
+    border-bottom: none;
+}
+
+.result-question {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.result-answer {
+    font-size: 0.9em;
+    color: #666;
+    margin: 5px 0;
+}
+
+.result-correct {
+    color: #4ecdc4;
+}
+
+.result-incorrect {
+    color: #ff6b6b;
+}
+
+.results-buttons {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.results-buttons button {
+    flex: 1;
+    min-width: 150px;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .sidebar {
+        width: 220px;
+    }
+
+    body.has-sidebar .main-content {
+        margin-left: 220px;
+    }
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        width: 200px;
+    }
+
+    body.has-sidebar .main-content {
+        margin-left: 200px;
+    }
+
+    .title {
+        font-size: 2em;
+    }
+
+    .quiz-selection-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stats-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .quick-quiz-buttons {
+        grid-template-columns: 1fr;
+    }
+
+    .quiz-header {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .quiz-info {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .page {
+        padding: 20px 15px;
+    }
+
+    .home-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .sidebar {
+        width: 240px;
+        transform: translateX(-100%);
+    }
+
+    .sidebar.open {
+        transform: translateX(0);
+        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.25);
+    }
+
+    /* On small phones the sidebar becomes an off-canvas drawer that overlays the
+       content instead of pushing it, so the main content always fills the screen. */
+    body.has-sidebar .main-content {
+        margin-left: 0;
+    }
+
+    .toggle-sidebar {
+        display: block;
+    }
+
+    .nav-label {
+        display: inline;
+    }
+
+    body.has-sidebar .mobile-menu-btn {
+        display: flex;
+    }
+
+    /* Hide the hamburger button once the drawer is open (the in-drawer ✕/☰ button closes it instead) */
+    .sidebar.open ~ .mobile-menu-btn {
+        display: none;
+    }
+
+    body.has-sidebar .page {
+        padding-top: 70px;
+    }
+
+    .title {
+        font-size: 1.5em;
+    }
+
+    .page-header h1 {
+        font-size: 1.8em;
+    }
+
+    .quiz-container {
+        padding: 20px;
+    }
+
+    .results-container {
+        padding: 20px;
+    }
+
+    .form-container {
+        width: 100%;
+        margin: 0;
+    }
+
+    .stats-summary {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================
+   Admin Dashboard
+   ============================ */
+.admin-entry-link {
+    margin-top: 10px;
+    font-size: 0.85em;
+    padding: 8px 16px;
+}
+
+.admin-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.admin-topbar h1 {
+    margin: 0;
+}
+
+.admin-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.admin-stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    border-top: 4px solid #667eea;
+}
+
+.admin-stat-value {
+    display: block;
+    font-size: 2em;
+    font-weight: 700;
+    color: #667eea;
+}
+
+.admin-stat-label {
+    display: block;
+    margin-top: 6px;
+    color: #666;
+    font-size: 0.9em;
+}
+
+.admin-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #e5e5e5;
+}
+
+.admin-tabs .tab-btn {
+    background: transparent;
+    border: none;
+    padding: 12px 20px;
+    font-size: 1em;
+    font-weight: 600;
+    color: #888;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.admin-tabs .tab-btn:hover {
+    color: #667eea;
+}
+
+.admin-tabs .tab-btn.active {
+    color: #667eea;
+    border-bottom-color: #667eea;
+}
+
+.admin-tab-content {
+    display: none;
+}
+
+.admin-tab-content.active {
+    display: block;
+}
+
+.admin-table-wrap {
+    background: white;
+    border-radius: 12px;
+    padding: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    overflow-x: auto;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+}
+
+.admin-table th,
+.admin-table td {
+    text-align: left;
+    padding: 12px 14px;
+    border-bottom: 1px solid #eee;
+    font-size: 0.92em;
+}
+
+.admin-table th {
+    background: #f5f7fa;
+    color: #444;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+}
+
+.admin-table tr:hover td {
+    background: #fafbff;
+}
+
+.admin-empty-row {
+    text-align: center !important;
+    color: #999;
+    padding: 25px !important;
+}
+
+.btn-admin-delete {
+    background: #ff6b6b;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85em;
+    white-space: nowrap;
+    transition: background 0.2s ease;
+}
+
+.btn-admin-delete:hover {
+    background: #e64545;
+}
+
+@media (max-width: 600px) {
+    .admin-topbar {
+        flex-direction: column;
+    }
+    .admin-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+</style>
+</head>
+<body>
+    <!-- Sidebar Navigation (hidden by default until login) -->
+    
+    <div id="sidebar" class="sidebar" style="display:none" role="navigation" aria-label="Main navigation">
+        <div class="sidebar-header">
+            <h2>🧮 Math Quiz</h2>
+            <button class="toggle-sidebar" onclick="toggleSidebar()" aria-label="Toggle sidebar">☰</button>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <button class="nav-item active" onclick="navigateToHome()">
+                <span class="nav-icon nav-home">🏠</span>
+                <span class="nav-label">Home</span>
+            </button>
+            <button class="nav-item" onclick="showQuizSelection()">
+                <span class="nav-icon nav-start">📚</span>
+                <span class="nav-label">Start Quiz</span>
+            </button>
+            <button class="nav-item" onclick="showStatistics()">
+                <span class="nav-icon nav-stats">📊</span>
+                <span class="nav-label">Statistics</span>
+            </button>
+            <button class="nav-item" onclick="showProfile()">
+                <span class="nav-icon nav-profile">👤</span>
+                <span class="nav-label">Profile</span>
+            </button>
+            <button class="nav-item" onclick="showAbout()">
+                <span class="nav-icon nav-about">ℹ️</span>
+                <span class="nav-label">About</span>
+            </button>
+            <button class="nav-item" onclick="showContact()">
+                <span class="nav-icon nav-contact">✉️</span>
+                <span class="nav-label">Contact</span>
+            </button>
+        </nav>
+
+        <div class="sidebar-footer">
+            <button class="nav-item logout-btn" onclick="handleLogout()">
+                <span class="nav-icon">🚪</span>
+                <span class="nav-label">Logout</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Mobile menu button (opens the sidebar drawer on small screens) -->
+    <button id="mobileMenuBtn" class="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Open menu">☰</button>
+    <!-- Backdrop shown behind the sidebar drawer on mobile -->
+    <div id="sidebarBackdrop" class="sidebar-backdrop" onclick="toggleSidebar()"></div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Front Page -->
+        <div id="frontPage" class="page active">
+            <div class="auth-container">
+                <h1 class="title">🧮 Math Quiz Master</h1>
+                <p class="subtitle">Test your math skills and improve your abilities!</p>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="showLoginPage()">Login</button>
+                    <button class="btn btn-secondary" onclick="showRegisterPage()">Register</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Login Page -->
+        <div id="loginPage" class="page">
+            <div class="auth-container">
+                <div class="form-container">
+                    <h2>Login</h2>
+                    <form onsubmit="handleLogin(event)" novalidate>
+                        <div class="form-group">
+                            <label for="loginEmail">Email:</label>
+                            <input type="text" id="loginEmail" required autocomplete="username">
+                        </div>
+                        <div class="form-group">
+                            <label for="loginPassword">Password:</label>
+                            <div class="password-wrapper">
+                                <input type="password" id="loginPassword" required minlength="8" maxlength="20" data-min="8" data-max="20">
+                                <button type="button" class="toggle-password" data-target="loginPassword" aria-label="Show password">
+                                    <!-- eye icon inserted by JS fallback -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                </button>
+                            </div>
+                            <div class="char-counter" id="loginPasswordCounter">0/20</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Login</button>
+                        <button type="button" class="btn btn-link" onclick="showFrontPage()">Back</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Register Page -->
+        <div id="registerPage" class="page">
+            <div class="auth-container">
+                <div class="form-container">
+                    <h2>Register</h2>
+                    <form onsubmit="handleRegister(event)">
+                        <div class="form-group">
+                            <label for="registerName">Full Name:</label>
+                            <input type="text" id="registerName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="registerEmail">Email:</label>
+                            <input type="email" id="registerEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="registerPassword">Password:</label>
+                            <div class="password-wrapper">
+                                <input type="password" id="registerPassword" required minlength="8" maxlength="20" data-min="8" data-max="20">
+                                <button type="button" class="toggle-password" data-target="registerPassword" aria-label="Show password">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                </button>
+                            </div>
+                            <div class="char-counter" id="registerPasswordCounter">0/20</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Register</button>
+                        <button type="button" class="btn btn-link" onclick="showFrontPage()">Back</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Dashboard Page -->
+        <div id="adminDashboardPage" class="page">
+            <div class="admin-topbar">
+                <div>
+                    <h1>🛠️ Admin Dashboard</h1>
+                    <p class="header-subtitle">Manage users, quiz activity, and messages</p>
+                </div>
+                <button class="btn btn-secondary" onclick="handleAdminLogout()">Logout</button>
+            </div>
+
+            <div class="admin-stats-grid">
+                <div class="admin-stat-card">
+                    <span class="admin-stat-value" id="adminTotalUsers">0</span>
+                    <span class="admin-stat-label">Total Users</span>
+                </div>
+                <div class="admin-stat-card">
+                    <span class="admin-stat-value" id="adminTotalQuizzes">0</span>
+                    <span class="admin-stat-label">Quizzes Taken</span>
+                </div>
+                <div class="admin-stat-card">
+                    <span class="admin-stat-value" id="adminAvgScore">0%</span>
+                    <span class="admin-stat-label">Overall Avg Score</span>
+                </div>
+                <div class="admin-stat-card">
+                    <span class="admin-stat-value" id="adminTotalMessages">0</span>
+                    <span class="admin-stat-label">Contact Messages</span>
+                </div>
+            </div>
+
+            <div class="admin-tabs">
+                <button class="tab-btn active" onclick="showAdminTab('users')">👥 Users</button>
+                <button class="tab-btn" onclick="showAdminTab('messages')">✉️ Messages</button>
+            </div>
+
+            <div id="adminUsersTab" class="admin-tab-content active">
+                <div class="admin-table-wrap">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th><th>Email</th><th>Quizzes</th><th>Avg Score</th><th>Best</th><th>Joined</th><th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminUsersBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="adminMessagesTab" class="admin-tab-content">
+                <div class="admin-table-wrap">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th><th>Email</th><th>Phone</th><th>Message</th><th>Date</th><th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminMessagesBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Home Page (Dashboard) -->
+        <div id="homePage" class="page">
+            <div class="page-header">
+                <h1>Welcome, <span id="userNameDisplay">User</span>!</h1>
+                <p class="header-subtitle">Ready to test your math skills?</p>
+            </div>
+
+            <div class="dashboard-grid">
+                <aside class="dashboard-card profile-card-small">
+                    <div id="dashboardAvatar" class="profile-avatar-large">U</div>
+                    <h3 id="dashboardName">User</h3>
+                    <p id="dashboardEmail">user@email.com</p>
+
+                    <div class="profile-stats-small">
+                        <div class="ps-item">
+                            <strong id="totalQuizzesSmall">0</strong>
+                            <span>Quizzes</span>
+                        </div>
+                        <div class="ps-item">
+                            <strong id="avgScoreSmall">0%</strong>
+                            <span>Average</span>
+                        </div>
+                        <div class="ps-item">
+                            <strong id="bestScoreSmall">0/10</strong>
+                            <span>Best</span>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:15px; display:flex; gap:10px;">
+                        <button class="btn btn-primary" onclick="navigateToHome()">View Profile</button>
+                        <button class="btn btn-secondary" onclick="navigateToHome()">My Quizzes</button>
+                    </div>
+                </aside>
+
+                <main class="dashboard-card main-card">
+                    <h2>Progress</h2>
+                    <div class="progress-wrap">
+                        <div class="progress-bar-bg">
+                            <div id="progressBarFill" class="progress-bar-fill" style="width: 0%"></div>
+                        </div>
+                        <div class="progress-info"><span id="progressPercent">0%</span> Average Score</div>
+                    </div>
+
+                    <h2 style="margin-top:20px;">Recent Attempts</h2>
+                    <div id="recentQuizzes" class="recent-list">
+                        <p class="no-recent">No attempts yet. Play a quiz to see results here.</p>
+                    </div>
+                </main>
+
+                <aside class="dashboard-card actions-card">
+                    <h3>Quick Start</h3>
+                    <div class="quick-actions">
+                        <button class="btn btn-primary" onclick="startQuiz('easy','multipleChoice')">Start Easy</button>
+                        <button class="btn btn-primary" onclick="startQuiz('medium','multipleChoice')">Start Medium</button>
+                        <button class="btn btn-primary" onclick="startQuiz('hard','multipleChoice')">Start Hard</button>
+                    </div>
+
+                    <h3 style="margin-top:20px;">Leaderboard</h3>
+                    <div id="leaderboard" class="leaderboard-list">
+                        <p class="no-leaderboard">No leaderboard data yet.</p>
+                    </div>
+                </aside>
+            </div>
+        </div>
+
+        <!-- About Page -->
+        <div id="aboutPage" class="page">
+            <div class="page-header">
+                <h1>About</h1>
+                <p class="header-subtitle">Learn more about the project and author</p>
+            </div>
+            <div class="profile-container">
+                <div class="profile-card">
+                    <h2>Math Quiz App</h2>
+                    <p>This project is a lightweight, browser-based math quiz application designed to help learners practice arithmetic and basic math concepts. It's built with standard web technologies (HTML, CSS, JS) and stores user data locally for quick prototyping.</p>
+                    <h3 style="margin-top:16px;">Authors</h3>
+                    <p>Areglado, Marc Kent </p>
+                    <p>Bernales, John Rey </p>
+                    <p>Cinco, Mc Kevin </p>
+                    <p>Enguerra, Aaron C. </p>
+                    <p>Jadan, Jean Claire </p>
+                    <p>Marco, Tobey D. </p>
+                    <p>Ombina, Boozer </p>
+                    <p>Ramos, Ian </p>
+                    <p>Salvacion, Rochelle </p>
+                    <p>Tenorio, Emmanuel Robert </p>
+                    <p>Villamor, Marcdanielle </p>
+                    
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Page -->
+        <div id="contactPage" class="page">
+            <div class="page-header">
+                <h1>Contact</h1>
+                <p class="header-subtitle">Get in touch</p>
+            </div>
+            <div class="profile-container">
+                <div class="profile-card">
+                    <form id="contactForm" onsubmit="handleContactSubmit(event)">
+                        <div class="form-group">
+                            <label for="contactName">Name</label>
+                            <input type="text" id="contactName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="contactEmail">Email</label>
+                            <input type="email" id="contactEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="contactPhone">Phone</label>
+                            <input type="tel" id="contactPhone">
+                        </div>
+                        <div class="form-group">
+                            <label for="contactMessage">Message</label>
+                            <textarea id="contactMessage" rows="4" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Send Message</button>
+                    </form>
+
+                    <div style="margin-top:20px;">
+                        <h3>Contact Info</h3>
+                        <p><strong>Email:</strong> hello@example.com</p>
+                        <p><strong>Phone:</strong> +1 (555) 123-4567</p>
+                        <p><strong>Address:</strong> 123 Learning Lane, Education City</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quiz Selection Page -->
+        <div id="quizSelectionPage" class="page">
+            <div class="page-header">
+                <h1>📚 Select a Quiz Level</h1>
+                <p class="header-subtitle">Choose your difficulty level</p>
+            </div>
+
+            <div class="quiz-selection-grid">
+                <div class="quiz-card">
+                    <div class="card-icon">🟢</div>
+                    <h3>Easy</h3>
+                    <p class="card-desc">Basic arithmetic operations</p>
+                    <p class="card-info">10 questions • 1 minute</p>
+                    <button class="btn btn-primary" onclick="selectQuizLevel('easy')">Select Level</button>
+                </div>
+
+                <div class="quiz-card">
+                    <div class="card-icon">🟡</div>
+                    <h3>Medium</h3>
+                    <p class="card-desc">Intermediate math problems</p>
+                    <p class="card-info">10 questions • 1 minute</p>
+                    <button class="btn btn-primary" onclick="selectQuizLevel('medium')">Select Level</button>
+                </div>
+
+                <div class="quiz-card">
+                    <div class="card-icon">🔴</div>
+                    <h3>Hard</h3>
+                    <p class="card-desc">Advanced math concepts</p>
+                    <p class="card-info">10 questions • 1 minute</p>
+                    <button class="btn btn-primary" onclick="selectQuizLevel('hard')">Select Level</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Type Selection Page -->
+        <div id="gameTypeSelectionPage" class="page">
+            <div class="page-header">
+                <h1>🎮 Select Game Type</h1>
+                <p class="header-subtitle">Choose how you want to play</p>
+            </div>
+
+            <div class="game-type-grid">
+                <div class="game-type-card">
+                    <div class="type-icon">📝</div>
+                    <h3>Multiple Choice</h3>
+                    <p class="type-desc">Select the correct answer from 4 options</p>
+                    <button class="btn btn-primary" onclick="startQuiz(null, 'multipleChoice')">Play Now</button>
+                </div>
+
+                <div class="game-type-card">
+                    <div class="type-icon">✔️</div>
+                    <h3>True or False</h3>
+                    <p class="type-desc">Decide if the statement is true or false</p>
+                    <button class="btn btn-primary" onclick="startQuiz(null, 'trueOrFalse')">Play Now</button>
+                </div>
+
+                <div class="game-type-card">
+                    <div class="type-icon">🔗</div>
+                    <h3>Matching</h3>
+                    <p class="type-desc">Match expressions with their answers</p>
+                    <button class="btn btn-primary" onclick="startQuiz(null, 'matching')">Play Now</button>
+                </div>
+            </div>
+
+            <button class="btn btn-secondary" style="margin-top: 30px; display: block; margin-left: auto; margin-right: auto;" onclick="showQuizSelection()">Back to Levels</button>
+        </div>
+
+        <!-- Statistics Page -->
+        <div id="statisticsPage" class="page">
+            <div class="page-header">
+                <h1>📊 Your Statistics</h1>
+                <p class="header-subtitle">Track your progress</p>
+            </div>
+
+            <div id="statsContainer" class="stats-container">
+                <p class="no-stats">No quiz attempts yet. Start your first quiz!</p>
+            </div>
+        </div>
+
+        <!-- Profile Page -->
+        <div id="profilePage" class="page">
+            <div class="page-header">
+                <h1>👤 Your Profile</h1>
+                <p class="header-subtitle">Your account information</p>
+            </div>
+
+            <div class="profile-container">
+                <div class="profile-card">
+                    <div class="profile-header">
+                        <div class="profile-avatar">👤</div>
+                        <div class="profile-info">
+                            <h2 id="profileName">User Name</h2>
+                            <p id="profileEmail">user@email.com</p>
+                        </div>
+                    </div>
+
+                    <div class="profile-stats">
+                        <div class="profile-stat">
+                            <label>Total Quizzes:</label>
+                            <span id="profileQuizzes">0</span>
+                        </div>
+                        <div class="profile-stat">
+                            <label>Average Score:</label>
+                            <span id="profileAvg">0%</span>
+                        </div>
+                        <div class="profile-stat">
+                            <label>Best Score:</label>
+                            <span id="profileBest">0/10</span>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-secondary" onclick="navigateToHome()">Back to Home</button>
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- Quiz Page -->
+        <div id="quizPage" class="page">
+            <div class="quiz-header">
+                <div class="quiz-info">
+                    <h2 id="quizTitle">Math Quiz</h2>
+                    <span id="questionCounter" class="counter">1/10</span>
+                </div>
+                <div class="timer" id="timer">
+                    <span id="timeDisplay" aria-live="polite">1:00</span>
+                </div>
+            </div>
+
+            <div class="quiz-container">
+                <div class="question-section">
+                    <h3 id="questionText">Question</h3>
+                    <div id="answersContainer" class="answers-grid"></div>
+                </div>
+                <div class="quiz-footer">
+                    <button class="btn btn-primary" id="nextBtn" onclick="nextQuestion()" style="display: none;">Next Question</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Visualization Page -->
+        <div id="dataPage" class="page">
+            <div class="page-header">
+                <h1>📈 User Data</h1>
+                <p class="header-subtitle">Overview of stored user statistics</p>
+            </div>
+            <div class="profile-container">
+                <div class="profile-card">
+                    <canvas id="dataChart" width="400" height="200"></canvas>
+                    <!-- table showing remote CSV results -->
+                    <div style="margin-top:20px;">
+                        <h3>Raw CSV from repo</h3>
+                        <table style="width:100%; border-collapse: collapse;">
+                            <thead><tr><th style="border:1px solid #ccc; padding:8px;">Name</th><th style="border:1px solid #ccc; padding:8px;">Avg Score</th></tr></thead>
+                            <tbody id="myTableBody"></tbody>
+                        </table>
+                    </div>
+                    <!-- token input and save control -->
+                    <div style="margin-top:20px;">
+                        <input type="password" id="adminKey" placeholder="Enter Token to Save" style="padding:8px; width:100%; max-width:300px;" />
+                        <button class="btn btn-primary" style="margin-top:10px;" onclick="saveData(prompt('Name?'), prompt('Score?'))">Add Entry</button>
+                        <p style="font-size:0.9em;color:#666;">During demo, paste your Personal Access Token here before clicking the button.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Page -->
+        <div id="resultsPage" class="page">
+            <div class="results-container">
+                <h1 id="resultTitle">Quiz Complete!</h1>
+                <div class="results-box">
+                    <div class="score-display">
+                        <div class="score-circle">
+                            <span id="finalScore">0</span>
+                            <span class="score-label">out of 10</span>
+                        </div>
+                    </div>
+                    <div class="results-details">
+                        <p><strong>Level:</strong> <span id="resultLevel">Easy</span></p>
+                        <p><strong>Correct Answers:</strong> <span id="correctCount">0</span>/10</p>
+                        <p><strong>Time Taken:</strong> <span id="timeTaken">0s</span></p>
+                        <p><strong>Percentage:</strong> <span id="resultPercentage">0%</span></p>
+                    </div>
+                </div>
+
+                <div class="results-review" id="resultsReview"></div>
+
+                <div class="results-buttons">
+                    <button class="btn btn-primary" onclick="navigateToHome()">Go to Home</button>
+                    <button class="btn btn-secondary" onclick="retakeQuiz()">Retake Quiz</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Chart.js for simple data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- PapaParse for CSV parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+    <script>
+// Page Navigation
+// Utility functions
+// Fisher-Yates shuffle for randomizing arrays (used extensively by quiz logic)
+function shuffleArray(array) {
+    // In-place shuffle
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
+function showPage(pageId) {
+    // If leaving the quiz page, make sure the quiz timer is stopped to avoid multiple timers running
+    if (pageId !== 'quizPage' && quizTimer) {
+        clearInterval(quizTimer);
+        quizTimer = null;
+        // reset display to configured quiz time
+        const t = currentQuiz && currentQuiz.timeLimit ? currentQuiz.timeLimit : 60;
+        document.getElementById('timeDisplay').textContent = formatTime(t);
+    }
+
+    // Hide sidebar on public pages (landing, login, register). Show sidebar on internal pages when logged in.
+    // NOTE: margin-left is controlled entirely via the "has-sidebar" class on body + CSS media queries
+    // (not inline styles), so the layout stays correct at every screen size, including mobile.
+    const sidebar = document.getElementById('sidebar');
+    if (pageId === 'frontPage' || pageId === 'loginPage' || pageId === 'registerPage' || pageId === 'adminDashboardPage') {
+        sidebar.style.display = 'none';
+        document.body.classList.remove('has-sidebar');
+    } else {
+        // show sidebar only if the user is logged in
+        const currentUser = localStorage.getItem('currentUser');
+        if (currentUser) {
+            sidebar.style.display = 'flex';
+            document.body.classList.add('has-sidebar');
+        } else {
+            sidebar.style.display = 'none';
+            document.body.classList.remove('has-sidebar');
+        }
+    }
+
+    // Always close the mobile off-canvas drawer when navigating to a new page
+    sidebar.classList.remove('open');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    if (backdrop) backdrop.classList.remove('visible');
+
+    document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+    document.getElementById(pageId).classList.add('active');
+    updateSidebarMenu(pageId);
+}
+
+function updateSidebarMenu(pageId) {
+    const items = document.querySelectorAll('.nav-item');
+    items.forEach(item => item.classList.remove('active'));
+
+    // nav order: Home(0), Start(1), Stats(2), Profile(3), About(4), Contact(5), Data(6), Logout(7)
+    if (pageId === 'homePage') {
+        if (items[0]) items[0].classList.add('active');
+    } else if (pageId === 'quizSelectionPage' || pageId === 'gameTypeSelectionPage') {
+        if (items[1]) items[1].classList.add('active');
+    } else if (pageId === 'statisticsPage') {
+        if (items[2]) items[2].classList.add('active');
+    } else if (pageId === 'profilePage') {
+        if (items[3]) items[3].classList.add('active');
+    } else if (pageId === 'aboutPage') {
+        if (items[4]) items[4].classList.add('active');
+    } else if (pageId === 'contactPage') {
+        if (items[5]) items[5].classList.add('active');
+    } else if (pageId === 'dataPage') {
+        if (items[6]) items[6].classList.add('active');
+    }
+}
+
+function showFrontPage() {
+    showPage('frontPage');
+}
+
+function showLoginPage() {
+    showPage('loginPage');
+}
+
+function showRegisterPage() {
+    showPage('registerPage');
+}
+
+// navigateToHome is defined earlier; keep single definition near top
+
+function showQuizSelection() {
+    showPage('quizSelectionPage');
+}
+
+function showStatistics() {
+    loadStatistics();
+    showPage('statisticsPage');
+}
+
+function showProfile() {
+    loadProfile();
+    showPage('profilePage');
+}
+
+function showAbout() {
+    showPage('aboutPage');
+}
+
+function showContact() {
+    showPage('contactPage');
+}
+
+// configuration for GitHub-hosted CSV
+const GITHUB_RAW_URL = "https://raw.githubusercontent.com/mrDevStudent/QuizPrototype2.0/refs/heads/main/data.csv";
+const GITHUB_API_URL = "https://api.github.com/repos/YOUR_USER/YOUR_REPO/contents/data.csv";
+
+// new data visualization page
+function showDataPage() {
+    loadDataVisualization();
+    // also fetch table from remote repo, if available
+    loadTable().catch(err => console.warn('loadTable failed', err));
+    showPage('dataPage');
+}
+
+function handleContactSubmit(event) {
+    event.preventDefault();
+    const name = document.getElementById('contactName').value.trim();
+    const email = document.getElementById('contactEmail').value.trim();
+    const phone = document.getElementById('contactPhone').value.trim();
+    const message = document.getElementById('contactMessage').value.trim();
+
+    if (!name || !email || !message) {
+        alert('Please fill in name, email and message.');
+        return;
+    }
+
+    const messages = JSON.parse(localStorage.getItem('contactMessages') || '[]');
+    messages.push({ name, email, phone, message, date: new Date().toISOString() });
+    localStorage.setItem('contactMessages', JSON.stringify(messages));
+
+    // simple confirmation
+    alert('Thanks — your message was saved. We will get back to you.');
+
+    // clear form
+    document.getElementById('contactForm').reset();
+    
+}
+
+// Uploads are managed on the backend; frontend will probe Uploads/ for expected filenames and apply images if present.
+
+function loadAssetsConfig(forceLocalOnly = false) {
+    // Priority: localStorage config if exists, otherwise try Fetch icons.json from Uploads/
+    const local = localStorage.getItem('uploadsConfig');
+    if (local && !forceLocalOnly) {
+        try {
+            applyAssetsFromConfig(JSON.parse(local));
+            return;
+        } catch (e) { console.warn('Invalid local uploadsConfig'); }
+    }
+
+    if (!forceLocalOnly) {
+        fetch('Uploads/icons.json')
+            .then(r => {
+                if (!r.ok) throw new Error('no icons.json');
+                return r.json();
+            })
+            .then(cfg => applyAssetsFromConfig(cfg))
+            .catch(() => {
+                // no remote config found; fall back to local only or probe defaults
+                if (local) applyAssetsFromConfig(JSON.parse(local));
+                else probeAndApplyDefaults();
+            });
+    } else if (local) {
+        applyAssetsFromConfig(JSON.parse(local));
+    }
+}
+
+function applyAssetsFromConfig(cfg) {
+    // Textures
+    if (cfg.textures && cfg.textures.body) {
+        const url = `Uploads/${cfg.textures.body}`;
+        // Try to load image quickly
+        const img = new Image();
+        img.onload = () => {
+            document.body.style.backgroundImage = `url('${url}'), linear-gradient(135deg, #667eea 0%, #764ba2 100%)`;
+            document.body.style.backgroundSize = 'cover';
+            document.body.style.backgroundRepeat = 'no-repeat';
+        };
+        img.onerror = () => console.warn('Body texture not found:', url);
+        img.src = url;
+    }
+
+    // Icons
+    if (cfg.icons) {
+        const setIcon = (selector, filename, size='24px') => {
+            const url = `Uploads/${filename}`;
+            document.querySelectorAll(selector).forEach(el => {
+                el.style.backgroundImage = `url('${url}')`;
+                el.style.backgroundSize = size + ' ' + size;
+                el.style.backgroundRepeat = 'no-repeat';
+                el.style.backgroundPosition = 'center';
+                // remove emoji/text so image shows
+                el.textContent = '';
+            });
+        };
+
+        if (cfg.icons.easy) setIcon('.quick-easy .btn-icon', cfg.icons.easy, '28px');
+        if (cfg.icons.medium) setIcon('.quick-medium .btn-icon', cfg.icons.medium, '28px');
+        if (cfg.icons.hard) setIcon('.quick-hard .btn-icon', cfg.icons.hard, '28px');
+
+        if (cfg.icons.logo) {
+            const url = `Uploads/${cfg.icons.logo}`;
+            const headerH2 = document.querySelector('.sidebar-header h2');
+            if (headerH2) {
+                headerH2.style.backgroundImage = `url('${url}')`;
+                headerH2.style.backgroundRepeat = 'no-repeat';
+                headerH2.style.backgroundSize = '28px 28px';
+                headerH2.style.paddingLeft = '36px';
+                headerH2.style.backgroundPosition = 'left center';
+                // remove emoji so logo shows
+                headerH2.textContent = ' Math Quiz';
+            }
+        }
+
+        // nav icons mapping: home,start,stats,profile,uploads,logout
+        if (cfg.icons.home) setIcon('.nav-icon.nav-home', cfg.icons.home, '22px');
+        if (cfg.icons.start) setIcon('.nav-icon.nav-start', cfg.icons.start, '22px');
+        if (cfg.icons.stats) setIcon('.nav-icon.nav-stats', cfg.icons.stats, '22px');
+        if (cfg.icons.profile) setIcon('.nav-icon.nav-profile', cfg.icons.profile, '22px');
+        if (cfg.icons.uploads) setIcon('.nav-icon.nav-uploads', cfg.icons.uploads, '22px');
+        if (cfg.icons.logout) setIcon('.nav-item.logout-btn .nav-icon', cfg.icons.logout, '22px');
+    }
+}
+
+// Load assets on page load
+// (initial page setup consolidated at end of file)
+
+// Probe Uploads/ for default filenames and apply any images found automatically
+function probeAndApplyDefaults() {
+    const expected = {
+        easy: '.quick-easy .btn-icon',
+        medium: '.quick-medium .btn-icon',
+        hard: '.quick-hard .btn-icon',
+        logo: '.sidebar-header h2',
+        home: '.nav-icon.nav-home',
+        start: '.nav-icon.nav-start',
+        stats: '.nav-icon.nav-stats',
+        profile: '.nav-icon.nav-profile',
+        uploads: '.nav-icon.nav-uploads',
+        logout: '.nav-item.logout-btn .nav-icon',
+        'my-texture': 'body'
+    };
+    const exts = ['png','jpg','jpeg','svg'];
+
+    Object.keys(expected).forEach(key => {
+        for (const ext of exts) {
+            const url = `Uploads/${key}.${ext}`;
+            const img = new Image();
+            img.onload = (() => {
+                // apply when loaded
+                if (key === 'my-texture') {
+                    document.body.style.backgroundImage = `url('${url}'), linear-gradient(135deg, #667eea 0%, #764ba2 100%)`;
+                    document.body.style.backgroundSize = 'cover';
+                    document.body.style.backgroundRepeat = 'no-repeat';
+                } else if (key === 'logo') {
+                    const headerH2 = document.querySelector('.sidebar-header h2');
+                    if (headerH2) {
+                        headerH2.style.backgroundImage = `url('${url}')`;
+                        headerH2.style.backgroundRepeat = 'no-repeat';
+                        headerH2.style.backgroundSize = '28px 28px';
+                        headerH2.style.paddingLeft = '36px';
+                        headerH2.style.backgroundPosition = 'left center';
+                        headerH2.textContent = ' Math Quiz';
+                    }
+                } else {
+                    const selector = expected[key];
+                    document.querySelectorAll(selector).forEach(el => {
+                        el.style.backgroundImage = `url('${url}')`;
+                        el.style.backgroundSize = '22px 22px';
+                        el.style.backgroundRepeat = 'no-repeat';
+                        el.style.backgroundPosition = 'center';
+                        el.textContent = '';
+                    });
+                }
+            }).bind(null);
+            img.onerror = () => {};
+            img.src = url;
+        }
+    });
+}
+
+
+function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebarBackdrop').classList.toggle('visible');
+}
+
+// User Management
+function handleRegister(event) {
+    event.preventDefault();
+    
+    const name = document.getElementById('registerName').value;
+    const email = document.getElementById('registerEmail').value;
+    const password = document.getElementById('registerPassword').value;
+    const min = parseInt(document.getElementById('registerPassword').dataset.min) || 8;
+    
+    // Validate inputs
+    if (!name || !email || !password) {
+        alert('Please fill in all fields!');
+        return;
+    }
+
+    if (password.length < min) {
+        alert(`Password must be at least ${min} characters.`);
+        return;
+    }
+    
+    const users = JSON.parse(localStorage.getItem('users')) || [];
+    if (users.find(u => u.email === email)) {
+        alert('Email already registered!');
+        return;
+    }
+    
+    const user = {
+        id: Date.now(),
+        name: name,
+        email: email,
+        password: password,
+        quizzes: []
+    };
+    
+    users.push(user);
+    localStorage.setItem('users', JSON.stringify(users));
+    
+    alert('Registration successful! Please login.');
+    
+    // Clear form
+    const registerForm = document.getElementById('registerPage').querySelector('form');
+    if (registerForm) {
+        registerForm.reset();
+    }
+    
+    // Clear input fields
+    document.getElementById('registerName').value = '';
+    document.getElementById('registerEmail').value = '';
+    document.getElementById('registerPassword').value = '';
+    
+    showLoginPage();
+}
+
+function handleLogin(event) {
+    event.preventDefault();
+    
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    
+    // Validate inputs
+    if (!email || !password) {
+        alert('Please fill in all fields!');
+        return;
+    }
+
+    // If the entered credentials match the admin account, go straight to the admin dashboard
+    if (email === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+        sessionStorage.setItem('isAdmin', 'true');
+
+        const loginForm = document.getElementById('loginPage').querySelector('form');
+        if (loginForm) loginForm.reset();
+
+        loadAdminDashboard();
+        showPage('adminDashboardPage');
+        return;
+    }
+    
+    const users = JSON.parse(localStorage.getItem('users')) || [];
+    const user = users.find(u => u.email === email && u.password === password);
+    
+    if (user) {
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        document.getElementById('userNameDisplay').textContent = user.name;
+        
+        // Clear login form
+        const loginForm = document.getElementById('loginPage').querySelector('form');
+        if (loginForm) {
+            loginForm.reset();
+        }
+        
+        // Clear input fields
+        document.getElementById('loginEmail').value = '';
+        document.getElementById('loginPassword').value = '';
+        
+        // Navigate to home (showPage will decide whether to display sidebar based on login state)
+        navigateToHome();
+    } else {
+        alert('Invalid email or password!');
+    }
+}
+
+function handleLogout() {
+    if (confirm('Are you sure you want to logout?')) {
+        localStorage.removeItem('currentUser');
+        document.getElementById('sidebar').style.display = 'none';
+        showFrontPage();
+    }
+}
+
+// Hide sidebar on initial load
+// (consolidated initial DOMContentLoaded below)
+
+// Quiz Questions Database - Multiple Choice
+const multipleChoiceQuizzes = {
+    easy: [
+        { question: 'What is 5 + 3?', options: ['8', '7', '9', '6'], correct: 0 },
+        { question: 'What is 12 - 4?', options: ['8', '6', '7', '9'], correct: 0 },
+        { question: 'What is 3 × 4?', options: ['12', '11', '13', '10'], correct: 0 },
+        { question: 'What is 20 ÷ 4?', options: ['5', '4', '6', '3'], correct: 0 },
+        { question: 'What is 7 + 8?', options: ['15', '14', '16', '13'], correct: 0 },
+        { question: 'What is 25 - 10?', options: ['15', '14', '16', '13'], correct: 0 },
+        { question: 'What is 6 × 2?', options: ['12', '11', '13', '10'], correct: 0 },
+        { question: 'What is 18 ÷ 3?', options: ['6', '5', '7', '4'], correct: 0 },
+        { question: 'What is 9 + 6?', options: ['15', '14', '16', '13'], correct: 0 },
+        { question: 'What is 30 ÷ 5?', options: ['6', '5', '7', '4'], correct: 0 },
+        { question: 'What is 11 + 9?', options: ['20', '19', '21', '18'], correct: 0 },
+        { question: 'What is 16 - 7?', options: ['9', '8', '10', '7'], correct: 0 },
+        { question: 'What is 4 × 5?', options: ['20', '19', '21', '22'], correct: 0 },
+        { question: 'What is 24 ÷ 6?', options: ['4', '3', '5', '6'], correct: 0 },
+        { question: 'What is 13 + 7?', options: ['20', '19', '21', '18'], correct: 0 }
+    ],
+    medium: [
+        { question: 'What is 25 + 17?', options: ['42', '41', '43', '40'], correct: 0 },
+        { question: 'What is 56 - 23?', options: ['33', '32', '34', '35'], correct: 0 },
+        { question: 'What is 12 × 5?', options: ['60', '59', '61', '58'], correct: 0 },
+        { question: 'What is 144 ÷ 12?', options: ['12', '11', '13', '10'], correct: 0 },
+        { question: 'What is 7² (7 squared)?', options: ['49', '48', '50', '47'], correct: 0 },
+        { question: 'What is 15 × 8?', options: ['120', '119', '121', '118'], correct: 0 },
+        { question: 'What is 98 - 45?', options: ['53', '52', '54', '51'], correct: 0 },
+        { question: 'What is 8 × 9?', options: ['72', '71', '73', '70'], correct: 0 },
+        { question: 'What is 100 ÷ 4?', options: ['25', '24', '26', '23'], correct: 0 },
+        { question: 'What is √64?', options: ['8', '7', '9', '6'], correct: 0 },
+        { question: 'What is 37 + 28?', options: ['65', '64', '66', '63'], correct: 0 },
+        { question: 'What is 85 - 32?', options: ['53', '52', '54', '51'], correct: 0 },
+        { question: 'What is 6² (6 squared)?', options: ['36', '35', '37', '34'], correct: 0 },
+        { question: 'What is √121?', options: ['11', '10', '12', '9'], correct: 0 },
+        { question: 'What is 18 × 4?', options: ['72', '71', '73', '70'], correct: 0 }
+    ],
+    hard: [
+        { question: 'What is 234 + 567?', options: ['801', '800', '802', '799'], correct: 0 },
+        { question: 'What is 1000 - 342?', options: ['658', '657', '659', '656'], correct: 0 },
+        { question: 'What is 23 × 17?', options: ['391', '390', '392', '389'], correct: 0 },
+        { question: 'What is 144 ÷ 12?', options: ['12', '11', '13', '10'], correct: 0 },
+        { question: 'What is 9³ (9 cubed)?', options: ['729', '728', '730', '727'], correct: 0 },
+        { question: 'What is 15% of 200?', options: ['30', '29', '31', '28'], correct: 0 },
+        { question: 'What is √196?', options: ['14', '13', '15', '12'], correct: 0 },
+        { question: 'What is 45 × 12?', options: ['540', '539', '541', '538'], correct: 0 },
+        { question: 'What is 256 ÷ 16?', options: ['16', '15', '17', '14'], correct: 0 },
+        { question: 'What is 2⁸ (2 to the 8th power)?', options: ['256', '255', '257', '254'], correct: 0 },
+        { question: 'What is 456 + 789?', options: ['1245', '1244', '1246', '1243'], correct: 0 },
+        { question: 'What is 2000 - 567?', options: ['1433', '1432', '1434', '1431'], correct: 0 },
+        { question: 'What is 32 × 25?', options: ['800', '799', '801', '798'], correct: 0 },
+        { question: 'What is 5⁴ (5 to the 4th)?', options: ['625', '624', '626', '623'], correct: 0 },
+        { question: 'What is √289?', options: ['17', '16', '18', '15'], correct: 0 }
+    ]
+};
+
+// Quiz Questions Database - True or False
+const trueOrFalseQuizzes = {
+    easy: [
+        { question: '5 + 3 = 8', correct: true },
+        { question: '12 - 4 = 9', correct: false },
+        { question: '3 × 4 = 12', correct: true },
+        { question: '20 ÷ 4 = 4', correct: false },
+        { question: '7 + 8 = 15', correct: true },
+        { question: '25 - 10 = 14', correct: false },
+        { question: '6 × 2 = 12', correct: true },
+        { question: '18 ÷ 3 = 5', correct: false },
+        { question: '9 + 6 = 15', correct: true },
+        { question: '30 ÷ 5 = 6', correct: true },
+        { question: '11 + 9 = 20', correct: true },
+        { question: '16 - 7 = 8', correct: false },
+        { question: '4 × 5 = 20', correct: true },
+        { question: '24 ÷ 6 = 4', correct: true },
+        { question: '13 + 7 = 19', correct: false }
+    ],
+    medium: [
+        { question: '25 + 17 = 42', correct: true },
+        { question: '56 - 23 = 32', correct: false },
+        { question: '12 × 5 = 60', correct: true },
+        { question: '144 ÷ 12 = 11', correct: false },
+        { question: '7² = 49', correct: true },
+        { question: '15 × 8 = 121', correct: false },
+        { question: '98 - 45 = 53', correct: true },
+        { question: '8 × 9 = 71', correct: false },
+        { question: '100 ÷ 4 = 25', correct: true },
+        { question: '√64 = 8', correct: true },
+        { question: '37 + 28 = 65', correct: true },
+        { question: '85 - 32 = 54', correct: false },
+        { question: '6² = 36', correct: true },
+        { question: '√121 = 11', correct: true },
+        { question: '18 × 4 = 72', correct: true }
+    ],
+    hard: [
+        { question: '234 + 567 = 801', correct: true },
+        { question: '1000 - 342 = 657', correct: false },
+        { question: '23 × 17 = 391', correct: true },
+        { question: '144 ÷ 12 = 12', correct: true },
+        { question: '9³ = 729', correct: true },
+        { question: '15% of 200 = 40', correct: false },
+        { question: '√196 = 14', correct: true },
+        { question: '45 × 12 = 540', correct: true },
+        { question: '256 ÷ 16 = 16', correct: true },
+        { question: '2⁸ = 256', correct: true },
+        { question: '456 + 789 = 1245', correct: true },
+        { question: '2000 - 567 = 1432', correct: false },
+        { question: '32 × 25 = 800', correct: true },
+        { question: '5⁴ = 625', correct: true },
+        { question: '√289 = 17', correct: true }
+    ]
+};
+
+// Quiz Questions Database - Matching
+const matchingQuizzes = {
+    easy: [
+        { pairs: [{ left: '5 + 3', right: '8' }, { left: '12 - 4', right: '8' }, { left: '3 × 4', right: '12' }, { left: '20 ÷ 4', right: '5' }, { left: '7 + 8', right: '15' }, { left: '25 - 10', right: '15' }, { left: '6 × 2', right: '12' }, { left: '18 ÷ 3', right: '6' }, { left: '9 + 6', right: '15' }, { left: '30 ÷ 5', right: '6' }] },
+        { pairs: [{ left: '11 + 9', right: '20' }, { left: '16 - 7', right: '9' }, { left: '4 × 5', right: '20' }, { left: '24 ÷ 6', right: '4' }, { left: '13 + 7', right: '20' }, { left: '8 + 5', right: '13' }, { left: '14 - 6', right: '8' }, { left: '3 × 3', right: '9' }, { left: '15 ÷ 3', right: '5' }, { left: '10 + 10', right: '20' }] }
+    ],
+    medium: [
+        { pairs: [{ left: '25 + 17', right: '42' }, { left: '56 - 23', right: '33' }, { left: '12 × 5', right: '60' }, { left: '144 ÷ 12', right: '12' }, { left: '7²', right: '49' }, { left: '15 × 8', right: '120' }, { left: '98 - 45', right: '53' }, { left: '8 × 9', right: '72' }, { left: '100 ÷ 4', right: '25' }, { left: '√64', right: '8' }] },
+        { pairs: [{ left: '37 + 28', right: '65' }, { left: '85 - 32', right: '53' }, { left: '6²', right: '36' }, { left: '√121', right: '11' }, { left: '18 × 4', right: '72' }, { left: '50 + 30', right: '80' }, { left: '100 - 45', right: '55' }, { left: '9 × 7', right: '63' }, { left: '200 ÷ 8', right: '25' }, { left: '√144', right: '12' }] }
+    ],
+    hard: [
+        { pairs: [{ left: '234 + 567', right: '801' }, { left: '1000 - 342', right: '658' }, { left: '23 × 17', right: '391' }, { left: '144 ÷ 12', right: '12' }, { left: '9³', right: '729' }, { left: '15% of 200', right: '30' }, { left: '√196', right: '14' }, { left: '45 × 12', right: '540' }, { left: '256 ÷ 16', right: '16' }, { left: '2⁸', right: '256' }] },
+        { pairs: [{ left: '456 + 789', right: '1245' }, { left: '2000 - 567', right: '1433' }, { left: '32 × 25', right: '800' }, { left: '5⁴', right: '625' }, { left: '√289', right: '17' }, { left: '111 + 222', right: '333' }, { left: '500 - 123', right: '377' }, { left: '25 × 20', right: '500' }, { left: '1000 ÷ 8', right: '125' }, { left: '3⁵', right: '243' }] }
+    ]
+};
+
+// Quiz State
+let currentQuiz = {
+    level: '',
+    gameType: 'multipleChoice',
+    questions: [],
+    currentQuestion: 0,
+    score: 0,
+    selectedAnswers: [],
+    startTime: 0,
+    timeLimit: 60 // 1 minute
+};
+
+let quizTimer = null;
+let selectedQuizLevel = '';
+
+function selectQuizLevel(level) {
+    selectedQuizLevel = level;
+    showPage('gameTypeSelectionPage');
+}
+
+function startQuiz(level, gameType) {
+    // If level is null, use the selected level from the previous step
+    if (level === null) {
+        level = selectedQuizLevel;
+    }
+    
+    currentQuiz.level = level;
+    currentQuiz.gameType = gameType;
+    
+    // Get questions based on game type
+    let quizzesDB;
+    if (gameType === 'multipleChoice') {
+        quizzesDB = multipleChoiceQuizzes;
+    } else if (gameType === 'trueOrFalse') {
+        quizzesDB = trueOrFalseQuizzes;
+    } else if (gameType === 'matching') {
+        quizzesDB = matchingQuizzes;
+    }
+    
+    // Deep copy questions and shuffle
+    let allQuestions = JSON.parse(JSON.stringify(quizzesDB[level]));
+    
+    if (gameType === 'multipleChoice') {
+        // Shuffle answer options for each question
+        allQuestions = allQuestions.map(q => {
+            const indices = [0, 1, 2, 3];
+            const shuffledIndices = shuffleArray(indices);
+            const newCorrectIndex = shuffledIndices.indexOf(q.correct);
+            const shuffledOptions = shuffledIndices.map(i => q.options[i]);
+            
+            return {
+                question: q.question,
+                options: shuffledOptions,
+                correct: newCorrectIndex
+            };
+        });
+    } else if (gameType === 'trueOrFalse') {
+        // Shuffle answer order for true/false
+        allQuestions = allQuestions.map(q => ({
+            question: q.question,
+            correct: q.correct
+        }));
+    } else if (gameType === 'matching') {
+        // For matching, pick one random set and shuffle its pairs
+        const sets = allQuestions;
+        const chosenSet = shuffleArray(sets)[0];
+        const shuffledPairs = shuffleArray(chosenSet.pairs.map(pair => ({ left: pair.left, right: pair.right })));
+        // Store as a single matching set (10 pairs)
+        allQuestions = [{ pairs: shuffledPairs }];
+    }
+    
+    // Shuffle question order
+    allQuestions = shuffleArray(allQuestions);
+    if (gameType !== 'matching') {
+        allQuestions = allQuestions.slice(0, 10);
+    }
+    
+    currentQuiz.questions = allQuestions;
+    currentQuiz.currentQuestion = 0;
+    currentQuiz.score = 0;
+    currentQuiz.selectedAnswers = [];
+    currentQuiz.startTime = Date.now();
+    currentQuiz.timeLimit = 60;
+    
+    const typeLabel = gameType === 'multipleChoice' ? 'Multiple Choice' : gameType === 'trueOrFalse' ? 'True or False' : 'Matching';
+    document.getElementById('quizTitle').textContent = `${level.charAt(0).toUpperCase() + level.slice(1)} - ${typeLabel}`;
+    
+    showPage('quizPage');
+    displayQuestion();
+    startTimer();
+}
+
+function displayQuestion() {
+    const question = currentQuiz.questions[currentQuiz.currentQuestion];
+    const answersContainer = document.getElementById('answersContainer');
+    answersContainer.innerHTML = '';
+    
+    if (currentQuiz.gameType === 'multipleChoice') {
+        document.getElementById('questionText').textContent = question.question;
+        document.getElementById('questionCounter').textContent = `${currentQuiz.currentQuestion + 1}/10`;
+        
+        question.options.forEach((option, index) => {
+            const button = document.createElement('button');
+            button.className = 'answer-btn';
+            button.textContent = option;
+            button.onclick = () => selectAnswer(index);
+            answersContainer.appendChild(button);
+        });
+    } else if (currentQuiz.gameType === 'trueOrFalse') {
+        document.getElementById('questionText').textContent = question.question;
+        document.getElementById('questionCounter').textContent = `${currentQuiz.currentQuestion + 1}/10`;
+        answersContainer.className = 'true-false-grid';
+        
+        const trueBtn = document.createElement('button');
+        trueBtn.className = 'answer-btn true-false-btn';
+        trueBtn.textContent = 'True';
+        trueBtn.onclick = () => selectAnswer(true);
+        answersContainer.appendChild(trueBtn);
+        
+        const falseBtn = document.createElement('button');
+        falseBtn.className = 'answer-btn true-false-btn';
+        falseBtn.textContent = 'False';
+        falseBtn.onclick = () => selectAnswer(false);
+        answersContainer.appendChild(falseBtn);
+    } else if (currentQuiz.gameType === 'matching') {
+        // Matching UI: left items numbered 1..N, right items lettered A..J
+        const matchingPairs = question.pairs;
+        const totalPairs = matchingPairs.length;
+        document.getElementById('questionText').textContent = `Match the following math expressions with their answers (1-${totalPairs} / A-${String.fromCharCode(64 + totalPairs)})`;
+        document.getElementById('questionCounter').textContent = `1/${totalPairs}`;
+        answersContainer.className = 'matching-container';
+        
+        // Prepare letters A..J
+        const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').slice(0, totalPairs);
+        const shuffledRights = shuffleArray(matchingPairs.map(p => p.right));
+        
+        // Ensure selectedAnswers map exists and is empty for this matching set
+        currentQuiz.selectedAnswers[currentQuiz.currentQuestion] = new Array(totalPairs).fill(null); // stores chosen letter
+        currentQuiz.matchingPairs = matchingPairs; // keep reference for scoring
+        
+        // Track which right items are used
+        currentQuiz._rightUsed = {};
+        currentQuiz._selectedLeft = null; // index of currently selected left item
+        currentQuiz._letterMap = {};
+        
+        const leftColumn = document.createElement('div');
+        leftColumn.className = 'matching-column left-column';
+        
+        const rightColumn = document.createElement('div');
+        rightColumn.className = 'matching-column right-column';
+        
+        matchingPairs.forEach((pair, index) => {
+            const leftItem = document.createElement('div');
+            leftItem.className = 'matching-item left-item';
+            leftItem.textContent = `${index + 1}) ${pair.left}`;
+            leftItem.dataset.index = index;
+            leftItem.onclick = () => {
+                // select this left
+                currentQuiz._selectedLeft = index;
+                document.querySelectorAll('.left-item').forEach(li => li.classList.remove('selected'));
+                leftItem.classList.add('selected');
+            };
+            leftColumn.appendChild(leftItem);
+        });
+        
+        shuffledRights.forEach((rightValue, i) => {
+            const rightItem = document.createElement('div');
+            rightItem.className = 'matching-item right-item';
+            rightItem.dataset.letter = letters[i];
+            rightItem.dataset.value = rightValue;
+            rightItem.textContent = `${letters[i]}) ${rightValue}`;
+            // store letter->value mapping for review
+            currentQuiz._letterMap[letters[i]] = rightValue;
+            rightItem.onclick = () => handleMatchingSelection(letters[i], rightValue, rightItem);
+            rightColumn.appendChild(rightItem);
+        });
+        
+        answersContainer.appendChild(leftColumn);
+        answersContainer.appendChild(rightColumn);
+    }
+    
+    document.getElementById('nextBtn').style.display = 'none';
+}
+
+function selectAnswer(answer) {
+    const question = currentQuiz.questions[currentQuiz.currentQuestion];
+    
+    if (currentQuiz.gameType === 'multipleChoice') {
+        currentQuiz.selectedAnswers[currentQuiz.currentQuestion] = answer;
+        
+        // Check if answer is correct
+        if (answer === question.correct) {
+            currentQuiz.score++;
+        }
+        
+        // Highlight selected answer
+        const buttons = document.querySelectorAll('.answer-btn');
+        buttons.forEach((btn, i) => {
+            btn.classList.remove('selected');
+            if (i === answer) {
+                btn.classList.add('selected');
+            }
+        });
+    } else if (currentQuiz.gameType === 'trueOrFalse') {
+        currentQuiz.selectedAnswers[currentQuiz.currentQuestion] = answer;
+        
+        // Check if answer is correct
+        if (answer === question.correct) {
+            currentQuiz.score++;
+        }
+        
+        // Highlight selected answer
+        const buttons = document.querySelectorAll('.true-false-btn');
+        buttons.forEach(btn => {
+            btn.classList.remove('selected');
+            if ((btn.textContent === 'True' && answer === true) || (btn.textContent === 'False' && answer === false)) {
+                btn.classList.add('selected');
+            }
+        });
+    }
+    
+    // Show next button
+    document.getElementById('nextBtn').style.display = 'block';
+}
+
+function handleMatchingSelection(letter, value, rightElem) {
+    const totalPairs = currentQuiz.matchingPairs.length;
+    const leftIndex = currentQuiz._selectedLeft;
+
+    if (leftIndex === null || leftIndex === undefined) {
+        alert('Please select a left item (1-10) first.');
+        return;
+    }
+
+    // Ensure the selectedAnswers entry exists
+    if (!currentQuiz.selectedAnswers[currentQuiz.currentQuestion]) {
+        currentQuiz.selectedAnswers[currentQuiz.currentQuestion] = new Array(totalPairs).fill(null);
+    }
+
+    const userSelections = currentQuiz.selectedAnswers[currentQuiz.currentQuestion];
+
+    // If this right item is already used by another left, prevent reuse
+    if (currentQuiz._rightUsed[letter] !== undefined && currentQuiz._rightUsed[letter] !== leftIndex) {
+        alert('That option is already used. Choose another.');
+        return;
+    }
+
+    // If this left already had a selection, free the previous right item
+    const previousLetter = userSelections[leftIndex];
+    if (previousLetter) {
+        // find previous right elem and unmark
+        const prevRightElem = Array.from(document.querySelectorAll('.right-item')).find(e => e.dataset.letter === previousLetter);
+        if (prevRightElem) prevRightElem.classList.remove('matched');
+        delete currentQuiz._rightUsed[previousLetter];
+    }
+
+    // Assign this right to the selected left
+    userSelections[leftIndex] = letter; // store letter for review
+    currentQuiz._rightUsed[letter] = leftIndex;
+
+    // Update UI: mark this right as matched and show letter next to left
+    rightElem.classList.add('matched');
+    const leftItem = document.querySelector(`.left-item[data-index='${leftIndex}']`);
+    if (leftItem) {
+        // Show assigned letter on the left item
+        leftItem.querySelector('.assigned-letter')?.remove();
+        const span = document.createElement('span');
+        span.className = 'assigned-letter';
+        span.style.marginLeft = '10px';
+        span.style.fontWeight = '700';
+        span.textContent = `(${letter})`;
+        leftItem.appendChild(span);
+        leftItem.classList.remove('selected');
+    }
+
+    // Clear selectedLeft so user explicitly selects next left
+    currentQuiz._selectedLeft = null;
+
+    // If all lefts have answers, compute score for this matching set and enable Next
+    const allAssigned = userSelections.every(s => s !== null);
+    if (allAssigned) {
+        // count correct matches
+        let correctCount = 0;
+        userSelections.forEach((chosenLetter, idx) => {
+            const chosenRightValue = Array.from(document.querySelectorAll('.right-item')).find(e => e.dataset.letter === chosenLetter).dataset.value;
+            if (chosenRightValue === currentQuiz.matchingPairs[idx].right) correctCount++;
+        });
+        // For matching, we count correct pairs toward the score (0..N)
+        currentQuiz.score += correctCount;
+
+        // store number correct for review if needed
+        currentQuiz._lastMatchingCorrect = correctCount;
+
+        document.getElementById('nextBtn').style.display = 'block';
+    }
+}
+
+function nextQuestion() {
+    if (currentQuiz.gameType === 'matching') {
+        // Matching is a single set of N pairs that were scored per-pair, so finishing the set ends the quiz
+        endQuiz();
+        return;
+    }
+
+    currentQuiz.currentQuestion++;
+    const maxQuestions = 10;
+
+    if (currentQuiz.currentQuestion < maxQuestions) {
+        displayQuestion();
+    } else {
+        endQuiz();
+    }
+}
+
+function startTimer() {
+    // Ensure no previous timer is running
+    if (quizTimer) {
+        clearInterval(quizTimer);
+        quizTimer = null;
+    }
+
+    let timeLeft = currentQuiz.timeLimit;
+    const minutesInit = Math.floor(timeLeft / 60);
+    const secondsInit = timeLeft % 60;
+    document.getElementById('timeDisplay').textContent = `${minutesInit}:${secondsInit < 10 ? '0' : ''}${secondsInit}`;
+
+    quizTimer = setInterval(() => {
+        timeLeft--;
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        document.getElementById('timeDisplay').textContent = 
+            `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        
+        if (timeLeft <= 0) {
+            clearInterval(quizTimer);
+            quizTimer = null;
+            endQuiz();
+        }
+    }, 1000);
+}
+
+// Format seconds into M:SS
+function formatTime(seconds) {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+}
+
+function endQuiz() {
+    clearInterval(quizTimer);
+    quizTimer = null;
+
+    const timeTaken = Math.floor((Date.now() - currentQuiz.startTime) / 1000);
+    const totalQuestions = currentQuiz.gameType === 'matching' ? (currentQuiz.matchingPairs ? currentQuiz.matchingPairs.length : 0) : 10;
+    const percentage = totalQuestions > 0 ? Math.round((currentQuiz.score / totalQuestions) * 100) : 0;
+    
+    // Save quiz result (only if a current user exists)
+    try {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        const users = JSON.parse(localStorage.getItem('users') || '[]');
+        const typeLabel = currentQuiz.gameType === 'multipleChoice' ? 'MC' : currentQuiz.gameType === 'trueOrFalse' ? 'T/F' : 'Match';
+
+        if (currentUser) {
+            const userIndex = users.findIndex(u => u.id === currentUser.id);
+            if (userIndex !== -1) {
+                users[userIndex].quizzes = users[userIndex].quizzes || [];
+                users[userIndex].quizzes.push({
+                    level: currentQuiz.level,
+                    gameType: typeLabel,
+                    score: currentQuiz.score,
+                    totalQuestions: totalQuestions,
+                    percentage: percentage,
+                    date: new Date().toLocaleDateString(),
+                    time: timeTaken
+                });
+                localStorage.setItem('users', JSON.stringify(users));
+                localStorage.setItem('currentUser', JSON.stringify(users[userIndex]));
+            }
+        }
+    } catch (e) {
+        console.warn('Could not persist quiz result', e);
+    }
+    
+    // Display results
+    document.getElementById('finalScore').textContent = currentQuiz.score;
+    document.getElementById('resultLevel').textContent = currentQuiz.level.charAt(0).toUpperCase() + currentQuiz.level.slice(1);
+    document.getElementById('correctCount').textContent = currentQuiz.score;
+    document.getElementById('timeTaken').textContent = timeTaken + 's';
+    document.getElementById('resultPercentage').textContent = percentage + '%';
+    
+    // Build review of questions based on game type
+    let reviewHtml = '<h3 style="color: #667eea; margin-bottom: 15px;">Review Your Answers</h3>';
+    
+    if (currentQuiz.gameType === 'multipleChoice') {
+        currentQuiz.questions.forEach((question, index) => {
+            const isCorrect = currentQuiz.selectedAnswers[index] === question.correct;
+            const selectedAnswer = question.options[currentQuiz.selectedAnswers[index]];
+            const correctAnswer = question.options[question.correct];
+            
+            reviewHtml += `
+                <div class="result-item">
+                    <div class="result-question">Q${index + 1}: ${question.question}</div>
+                    <div class="result-answer">Your answer: <span class="${isCorrect ? 'result-correct' : 'result-incorrect'}">${selectedAnswer}</span></div>
+                    ${!isCorrect ? `<div class="result-answer">Correct answer: <span class="result-correct">${correctAnswer}</span></div>` : ''}
+                </div>
+            `;
+        });
+    } else if (currentQuiz.gameType === 'trueOrFalse') {
+        currentQuiz.questions.forEach((question, index) => {
+            const isCorrect = currentQuiz.selectedAnswers[index] === question.correct;
+            const selectedAnswer = currentQuiz.selectedAnswers[index] ? 'True' : 'False';
+            const correctAnswer = question.correct ? 'True' : 'False';
+            
+            reviewHtml += `
+                <div class="result-item">
+                    <div class="result-question">Q${index + 1}: ${question.question}</div>
+                    <div class="result-answer">Your answer: <span class="${isCorrect ? 'result-correct' : 'result-incorrect'}">${selectedAnswer}</span></div>
+                    ${!isCorrect ? `<div class="result-answer">Correct answer: <span class="result-correct">${correctAnswer}</span></div>` : ''}
+                </div>
+            `;
+        });
+    } else if (currentQuiz.gameType === 'matching') {
+        const matchingPairs = currentQuiz.matchingPairs || (currentQuiz.questions[0] && currentQuiz.questions[0].pairs) || [];
+        const userLetters = (currentQuiz.selectedAnswers && currentQuiz.selectedAnswers[0]) ? currentQuiz.selectedAnswers[0] : [];
+        reviewHtml += `<div class="result-item"><div class="result-question">Matching Review</div>`;
+        matchingPairs.forEach((pair, pIndex) => {
+            const chosenLetter = userLetters[pIndex];
+            const chosenValue = chosenLetter ? (currentQuiz._letterMap ? currentQuiz._letterMap[chosenLetter] : 'Unknown') : 'Not answered';
+            const isCorrect = chosenValue === pair.right;
+            reviewHtml += `
+                <div class="result-answer">
+                    ${pIndex + 1}) ${pair.left} → ${chosenLetter ? chosenLetter + ') ' + chosenValue : chosenValue}
+                    ${isCorrect ? `<span class="result-correct"> (Correct)</span>` : ` <span class="result-incorrect">(Correct: ${pair.right})</span>`}
+                </div>
+            `;
+        });
+        reviewHtml += '</div>';
+    }
+    
+    document.getElementById('resultsReview').innerHTML = reviewHtml;
+    
+    showPage('resultsPage');
+}
+
+function quitQuiz() {
+    if (confirm('Are you sure you want to quit? Your progress will not be saved.')) {
+        clearInterval(quizTimer);
+        navigateToHome();
+    }
+}
+
+function navigateToHome() {
+    updateHomeStats();
+    showPage('homePage');
+}
+
+function retakeQuiz() {
+    startQuiz(currentQuiz.level, currentQuiz.gameType);
+}
+
+// Update home page stats
+function updateHomeStats() {
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+    
+    if (!user || !user.quizzes || user.quizzes.length === 0) {
+        // legacy elements (if present)
+        if (document.getElementById('totalQuizzes')) document.getElementById('totalQuizzes').textContent = '0';
+        if (document.getElementById('avgScore')) document.getElementById('avgScore').textContent = '0%';
+        if (document.getElementById('bestScore')) document.getElementById('bestScore').textContent = '0';
+
+        // new dashboard elements
+        if (document.getElementById('totalQuizzesSmall')) document.getElementById('totalQuizzesSmall').textContent = '0';
+        if (document.getElementById('avgScoreSmall')) document.getElementById('avgScoreSmall').textContent = '0%';
+        if (document.getElementById('bestScoreSmall')) document.getElementById('bestScoreSmall').textContent = '0/10';
+        if (document.getElementById('progressBarFill')) document.getElementById('progressBarFill').style.width = '0%';
+        if (document.getElementById('progressPercent')) document.getElementById('progressPercent').textContent = '0%';
+        renderHomeDashboard();
+        return;
+    }
+    
+    const totalQuizzes = user.quizzes.length;
+    const avgScore = Math.round(user.quizzes.reduce((sum, q) => sum + q.percentage, 0) / totalQuizzes);
+    const bestScore = Math.max(...user.quizzes.map(q => q.score));
+    
+    // legacy elements
+    if (document.getElementById('totalQuizzes')) document.getElementById('totalQuizzes').textContent = totalQuizzes;
+    if (document.getElementById('avgScore')) document.getElementById('avgScore').textContent = avgScore + '%';
+    if (document.getElementById('bestScore')) document.getElementById('bestScore').textContent = bestScore + '/10';
+
+    // new dashboard elements
+    if (document.getElementById('totalQuizzesSmall')) document.getElementById('totalQuizzesSmall').textContent = totalQuizzes;
+    if (document.getElementById('avgScoreSmall')) document.getElementById('avgScoreSmall').textContent = avgScore + '%';
+    if (document.getElementById('bestScoreSmall')) document.getElementById('bestScoreSmall').textContent = bestScore + '/10';
+    if (document.getElementById('progressBarFill')) document.getElementById('progressBarFill').style.width = avgScore + '%';
+    if (document.getElementById('progressPercent')) document.getElementById('progressPercent').textContent = avgScore + '%';
+
+    renderHomeDashboard();
+}
+
+function renderHomeDashboard() {
+    const user = JSON.parse(localStorage.getItem('currentUser')) || { name: 'User', email: '', quizzes: [] };
+
+    // Update name and avatar
+    if (document.getElementById('dashboardName')) document.getElementById('dashboardName').textContent = user.name;
+    if (document.getElementById('userNameDisplay')) document.getElementById('userNameDisplay').textContent = user.name;
+    if (document.getElementById('dashboardAvatar')) {
+        const initials = user.name ? user.name.split(' ').map(n => n[0]).slice(0,2).join('').toUpperCase() : 'U';
+        document.getElementById('dashboardAvatar').textContent = initials;
+    }
+    if (document.getElementById('dashboardEmail')) document.getElementById('dashboardEmail').textContent = user.email || '';
+
+    // Recent quizzes
+    const recentEl = document.getElementById('recentQuizzes');
+    if (recentEl) {
+        recentEl.innerHTML = '';
+        if (!user.quizzes || user.quizzes.length === 0) {
+            recentEl.innerHTML = '<p class="no-recent">No attempts yet. Play a quiz to see results here.</p>';
+        } else {
+            const recent = user.quizzes.slice(-5).reverse();
+            recent.forEach(q => {
+                const div = document.createElement('div');
+                div.className = 'recent-item';
+                const left = document.createElement('div');
+                left.innerHTML = `<div><strong>${q.level.charAt(0).toUpperCase() + q.level.slice(1)}</strong> <span class="meta">${q.gameType}</span></div><div class="meta">${q.date}</div>`;
+                const right = document.createElement('div');
+                right.innerHTML = `<div><strong>${q.percentage}%</strong></div><div class="meta">${q.score}/${q.totalQuestions}</div>`;
+                div.appendChild(left);
+                div.appendChild(right);
+                recentEl.appendChild(div);
+            });
+        }
+    }
+
+    // Leaderboard (top 5 by average percentage)
+    const lb = document.getElementById('leaderboard');
+    if (lb) {
+        lb.innerHTML = '';
+        const users = JSON.parse(localStorage.getItem('users')) || [];
+        if (users.length === 0) {
+            lb.innerHTML = '<p class="no-leaderboard">No leaderboard data yet.</p>';
+        } else {
+            const ranks = users.map(u => {
+                const avg = (u.quizzes && u.quizzes.length) ? Math.round(u.quizzes.reduce((s, q) => s + q.percentage, 0) / u.quizzes.length) : 0;
+                return { name: u.name || u.email, avg };
+            }).sort((a, b) => b.avg - a.avg).slice(0, 5);
+
+            ranks.forEach((r, i) => {
+                const div = document.createElement('div');
+                div.className = 'leader-item';
+                div.innerHTML = `<div>${i + 1}. ${r.name}</div><div><strong>${r.avg}%</strong></div>`;
+                lb.appendChild(div);
+            });
+        }
+    }
+}
+
+// Statistics
+function loadStatistics() {
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+    const statsContainer = document.getElementById('statsContainer');
+    
+    if (!user.quizzes || user.quizzes.length === 0) {
+        statsContainer.innerHTML = '<p class="no-stats">No quiz attempts yet. Start your first quiz!</p>';
+        return;
+    }
+    
+    let html = '';
+    user.quizzes.forEach((quiz) => {
+        const levelColor = quiz.level === 'easy' ? '🟢' : quiz.level === 'medium' ? '🟡' : '🔴';
+        html += `
+            <div class="stat-card">
+                <div class="stat-header">
+                    <h4>${levelColor} ${quiz.level.charAt(0).toUpperCase() + quiz.level.slice(1)}</h4>
+                    <span class="stat-date">${quiz.date}</span>
+                </div>
+                <div class="stat-info">
+                    <p><strong>Score:</strong> ${quiz.score}/${quiz.totalQuestions}</p>
+                    <p><strong>Percentage:</strong> ${quiz.percentage}%</p>
+                    <p><strong>Time:</strong> ${quiz.time}s</p>
+                </div>
+            </div>
+        `;
+    });
+    
+    statsContainer.innerHTML = html;
+}
+
+// Data visualization helpers
+function loadDataVisualization() {
+    const users = JSON.parse(localStorage.getItem('users')) || [];
+    const labels = users.map(u => u.email || u.name || 'unknown');
+    const totalQuizzes = users.map(u => (u.quizzes ? u.quizzes.length : 0));
+    const avgScores = users.map(u => {
+        if (!u.quizzes || u.quizzes.length === 0) return 0;
+        return Math.round(u.quizzes.reduce((s, q) => s + q.percentage, 0) / u.quizzes.length);
+    });
+
+    if (window.dataChartInstance) {
+        window.dataChartInstance.destroy();
+    }
+    const ctx = document.getElementById('dataChart').getContext('2d');
+    window.dataChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: 'Total Quizzes',
+                    backgroundColor: '#667eea',
+                    data: totalQuizzes
+                },
+                {
+                    label: 'Average Score',
+                    backgroundColor: '#4ecdc4',
+                    data: avgScores
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+}
+
+// exportDataCSV removed per user request; download functionality disabled
+
+
+// simple CSV loader using PapaParse
+async function loadTable() {
+    try {
+        const response = await fetch(GITHUB_RAW_URL);
+        const csvText = await response.text();
+        const results = Papa.parse(csvText, { header: true });
+        const data = results.data;
+        const tableBody = document.getElementById('myTableBody');
+        if (tableBody) {
+            tableBody.innerHTML = '';
+            data.forEach(row => {
+                tableBody.innerHTML += `<tr><td>${row.name}</td><td>${row.averageScore}</td></tr>`;
+            });
+        }
+    } catch (e) {
+        console.warn('Could not load remote CSV', e);
+    }
+}
+
+// saving back to GitHub via API (requires personal token from user input)
+async function saveData(newName, newScore) {
+    const token = document.getElementById('adminKey')?.value;
+    if (!token) {
+        alert('Please enter token first');
+        return;
+    }
+    const url = GITHUB_API_URL;
+    const fileData = await fetch(url).then(res => res.json());
+    const sha = fileData.sha;
+    const oldCsv = atob(fileData.content);
+    const newCsv = oldCsv + `\n${newName},email@test.com,1,${newScore},${newScore}`;
+    await fetch(url, {
+        method: "PUT",
+        headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            message: "Updating scores",
+            content: btoa(newCsv),
+            sha: sha
+        })
+    });
+    alert("Database Updated!");
+}
+
+// Load Profile
+function loadProfile() {
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+    
+    document.getElementById('profileName').textContent = user.name;
+    document.getElementById('profileEmail').textContent = user.email;
+    
+    if (!user.quizzes || user.quizzes.length === 0) {
+        document.getElementById('profileQuizzes').textContent = '0';
+        document.getElementById('profileAvg').textContent = '0%';
+        document.getElementById('profileBest').textContent = '0/10';
+        return;
+    }
+    
+    const totalQuizzes = user.quizzes.length;
+    const avgScore = Math.round(user.quizzes.reduce((sum, q) => sum + q.percentage, 0) / totalQuizzes);
+    const bestScore = Math.max(...user.quizzes.map(q => q.score));
+    
+    document.getElementById('profileQuizzes').textContent = totalQuizzes;
+    document.getElementById('profileAvg').textContent = avgScore + '%';
+    document.getElementById('profileBest').textContent = bestScore + '/10';
+}
+
+// ============================
+// Admin Dashboard
+// ============================
+const ADMIN_USERNAME = 'admin';
+const ADMIN_PASSWORD = 'admin123';
+
+function handleAdminLogout() {
+    if (confirm('Log out of the admin dashboard?')) {
+        sessionStorage.removeItem('isAdmin');
+        showFrontPage();
+    }
+}
+
+function showAdminTab(tab) {
+    const tabButtons = document.querySelectorAll('.admin-tabs .tab-btn');
+    const tabContents = document.querySelectorAll('.admin-tab-content');
+    tabButtons.forEach(btn => btn.classList.remove('active'));
+    tabContents.forEach(content => content.classList.remove('active'));
+
+    if (tab === 'users') {
+        if (tabButtons[0]) tabButtons[0].classList.add('active');
+        const usersTab = document.getElementById('adminUsersTab');
+        if (usersTab) usersTab.classList.add('active');
+    } else {
+        if (tabButtons[1]) tabButtons[1].classList.add('active');
+        const messagesTab = document.getElementById('adminMessagesTab');
+        if (messagesTab) messagesTab.classList.add('active');
+    }
+}
+
+// Basic HTML escaping so stored user/message data can't break the admin table markup
+function escapeHtml(value) {
+    if (value === undefined || value === null) return '';
+    return String(value).replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+}
+
+function loadAdminDashboard() {
+    const users = JSON.parse(localStorage.getItem('users')) || [];
+    const messages = JSON.parse(localStorage.getItem('contactMessages')) || [];
+
+    let totalQuizzes = 0;
+    let avgScoreSum = 0;
+    let usersWithQuizzes = 0;
+
+    let usersHtml = '';
+    if (users.length === 0) {
+        usersHtml = '<tr><td colspan="7" class="admin-empty-row">No registered users yet.</td></tr>';
+    } else {
+        users.forEach(u => {
+            const quizzes = u.quizzes || [];
+            totalQuizzes += quizzes.length;
+
+            const avg = quizzes.length
+                ? Math.round(quizzes.reduce((sum, q) => sum + q.percentage, 0) / quizzes.length)
+                : 0;
+            const best = quizzes.length ? Math.max(...quizzes.map(q => q.score)) : 0;
+
+            if (quizzes.length) {
+                avgScoreSum += avg;
+                usersWithQuizzes++;
+            }
+
+            const joined = u.id ? new Date(u.id).toLocaleDateString() : '—';
+
+            usersHtml += `
+                <tr>
+                    <td>${escapeHtml(u.name)}</td>
+                    <td>${escapeHtml(u.email)}</td>
+                    <td>${quizzes.length}</td>
+                    <td>${avg}%</td>
+                    <td>${best}/10</td>
+                    <td>${joined}</td>
+                    <td><button class="btn-admin-delete" onclick="deleteAdminUser(${u.id})" aria-label="Delete user">🗑️ Delete</button></td>
+                </tr>`;
+        });
+    }
+    document.getElementById('adminUsersBody').innerHTML = usersHtml;
+
+    let messagesHtml = '';
+    if (messages.length === 0) {
+        messagesHtml = '<tr><td colspan="6" class="admin-empty-row">No contact messages yet.</td></tr>';
+    } else {
+        messages.forEach((m, idx) => {
+            const dateStr = m.date ? new Date(m.date).toLocaleString() : '—';
+            messagesHtml += `
+                <tr>
+                    <td>${escapeHtml(m.name)}</td>
+                    <td>${escapeHtml(m.email)}</td>
+                    <td>${escapeHtml(m.phone || '—')}</td>
+                    <td>${escapeHtml(m.message)}</td>
+                    <td>${dateStr}</td>
+                    <td><button class="btn-admin-delete" onclick="deleteAdminMessage(${idx})" aria-label="Delete message">🗑️ Delete</button></td>
+                </tr>`;
+        });
+    }
+    document.getElementById('adminMessagesBody').innerHTML = messagesHtml;
+
+    document.getElementById('adminTotalUsers').textContent = users.length;
+    document.getElementById('adminTotalQuizzes').textContent = totalQuizzes;
+    document.getElementById('adminAvgScore').textContent = (usersWithQuizzes ? Math.round(avgScoreSum / usersWithQuizzes) : 0) + '%';
+    document.getElementById('adminTotalMessages').textContent = messages.length;
+}
+
+function deleteAdminUser(id) {
+    if (!confirm('Delete this user account? This cannot be undone.')) return;
+
+    let users = JSON.parse(localStorage.getItem('users')) || [];
+    users = users.filter(u => u.id !== id);
+    localStorage.setItem('users', JSON.stringify(users));
+
+    // If the deleted account happens to be the currently logged-in user, log them out
+    const current = JSON.parse(localStorage.getItem('currentUser') || 'null');
+    if (current && current.id === id) {
+        localStorage.removeItem('currentUser');
+    }
+
+    loadAdminDashboard();
+}
+
+function deleteAdminMessage(index) {
+    if (!confirm('Delete this message?')) return;
+
+    const messages = JSON.parse(localStorage.getItem('contactMessages')) || [];
+    messages.splice(index, 1);
+    localStorage.setItem('contactMessages', JSON.stringify(messages));
+
+    loadAdminDashboard();
+}
+
+// Password visibility toggles and character limit counters
+function setupPasswordControls() {
+    const eyeOpen = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+    const eyeOff = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.16 21.16 0 0 1 5.06-6.94"></path><path d="M1 1l22 22"></path><path d="M9.88 9.88a3 3 0 0 0 4.24 4.24"></path></svg>';
+
+    document.querySelectorAll('.toggle-password').forEach(btn => {
+        const targetId = btn.dataset.target;
+        const input = document.getElementById(targetId);
+        if (!input) return;
+        const max = parseInt(input.dataset.max) || parseInt(input.getAttribute('maxlength')) || 20;
+        const min = parseInt(input.dataset.min) || parseInt(input.getAttribute('minlength')) || 8;
+        const counter = document.getElementById(targetId + 'Counter');
+
+        const updateCounter = () => {
+            if (counter) counter.textContent = `${input.value.length}/${max}`;
+            // clear previous classes
+            input.classList.remove('invalid', 'valid');
+            if (counter) counter.classList.remove('invalid', 'valid');
+
+            // Do not show invalid state before the user begins typing
+            if (input.value.length === 0) {
+                return;
+            }
+
+            if (input.value.length < min) {
+                input.classList.add('invalid');
+                if (counter) counter.classList.add('invalid');
+            } else {
+                input.classList.add('valid');
+                if (counter) counter.classList.add('valid');
+            }
+        };
+
+        // initialize
+        updateCounter();
+
+        input.addEventListener('input', () => {
+            if (input.value.length > max) {
+                input.value = input.value.slice(0, max);
+            }
+            updateCounter();
+        });
+
+        // ensure icon present
+        if (!btn.innerHTML.trim()) btn.innerHTML = eyeOpen;
+
+        btn.addEventListener('click', () => {
+            if (input.type === 'password') {
+                input.type = 'text';
+                btn.innerHTML = eyeOff;
+                btn.setAttribute('aria-label', 'Hide password');
+            } else {
+                input.type = 'password';
+                btn.innerHTML = eyeOpen;
+                btn.setAttribute('aria-label', 'Show password');
+            }
+        });
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // initial UI state
+    const sb = document.getElementById('sidebar');
+    if (sb) sb.style.display = 'none';
+    // setup password controls and other initial assets
+    try { setupPasswordControls(); } catch (e) { console.warn('setupPasswordControls failed', e); }
+    try { loadAssetsConfig(); } catch (e) { console.warn('loadAssetsConfig failed', e); }
+});
+
+
+
+
+
+</script>
+</body>
+</html>
+
+
